@@ -97,6 +97,11 @@ ifdef CONFIG_QSCRIPT
   OBJS+= qscript.o eval.o
 endif
 
+OBJS+= lua-plugins.o
+TOBJS+= lua-plugins.o
+LIBS+= -llua
+TLIBS+= -llua
+
 ifdef CONFIG_ALL_KMAPS
   OBJS+= kmap.o
 endif
