@@ -371,23 +371,23 @@ void free_strings(StringArray *cs);
 
 /* simple dynamic strings wrappers. The strings are always terminated
    by zero except if they are empty. */
-typedef struct QString {
+typedef struct QEString {
     u8 *data;
     int len; /* string length excluding trailing '\0' */
-} QString;
+} QEString;
 
-static inline void qstrinit(QString *q) {
+static inline void qstrinit(QEString *q) {
     q->data = NULL;
     q->len = 0;
 }
 
-static inline void qstrfree(QString *q) {
+static inline void qstrfree(QEString *q) {
     qe_free(&q->data);
 }
 
-int qmemcat(QString *q, const u8 *data1, int len1);
-int qstrcat(QString *q, const char *str);
-int qprintf(QString *q, const char *fmt, ...) __attr_printf(2,3);
+int qmemcat(QEString *q, const u8 *data1, int len1);
+int qstrcat(QEString *q, const char *str);
+int qprintf(QEString *q, const char *fmt, ...) __attr_printf(2,3);
 
 /* Dynamic buffers with static allocation */
 typedef struct buf_t buf_t;
