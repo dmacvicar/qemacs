@@ -57,6 +57,7 @@ win32="no"
 cygwin="no"
 darwin="no"
 haiku="no"
+qt="yes"
 lshared="no"
 dllibs="-ldl"
 extralibs=""
@@ -480,6 +481,7 @@ echo "Source path         $source_path"
 echo "C compiler          $cc"
 echo "Tiny build          $tiny"
 echo "X11 support         $x11"
+echo "Qt support         $qt"
 echo "Xvideo support      $xv"
 #echo "Xrender support     $xrender"
 echo "libpng support      $png"
@@ -584,6 +586,11 @@ fi
 if test "$haiku" = "yes" ; then
   echo "#define CONFIG_HAIKU 1" >> $TMPH
   echo "CONFIG_HAIKU=yes" >> $TMPMAK
+fi
+
+if test "$qt" = "yes" ; then
+  echo "#define CONFIG_QT 1" >> $TMPH
+  echo "CONFIG_QT=yes" >> $TMPMAK
 fi
 
 if test "$x11" = "yes" ; then

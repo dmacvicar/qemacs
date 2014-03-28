@@ -80,6 +80,12 @@ ifdef CONFIG_HAIKU
   LIBS+= -lbe
 endif
 
+ifdef CONFIG_QT
+  OBJS+= qt.o
+  LIBS+= `pkg-config --libs QtGui QtCore`
+  CFLAGS+= `pkg-config --cflags QtGui QtCore`
+endif
+
 ifdef CONFIG_WIN32
   OBJS+= unix.o win32.o
   TOBJS+= unix.o win32.o
@@ -244,6 +250,9 @@ $(OBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 
 $(TOBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 	g++ $(DEFINES) -DCONFIG_TINY $(CFLAGS) -Wno-multichar -o $@ -c $<
+
+$(OBJS_DIR)/qt.o: qt.cpp $(DEPENDS) Makefile
+	g++ $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
 
 %.s: %.c $(DEPENDS) Makefile
 	$(CC) $(DEFINES) $(CFLAGS) -o $@ -S $<
