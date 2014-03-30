@@ -1415,7 +1415,7 @@ void free_strings(StringArray *cs)
  *
  * @return 0 if OK, -1 if allocation error.
  */
-int qmemcat(QString *q, const unsigned char *data1, int len1)
+int qmemcat(QEString *q, const unsigned char *data1, int len1)
 {
     int new_len, len, alloc_size;
 
@@ -1444,13 +1444,13 @@ int qmemcat(QString *q, const unsigned char *data1, int len1)
 /*
  * add a string to a dynamic string
  */
-int qstrcat(QString *q, const char *str)
+int qstrcat(QEString *q, const char *str)
 {
     return qmemcat(q, (unsigned char *)str, strlen(str));
 }
 
 /* XXX: we use a fixed size buffer */
-int qprintf(QString *q, const char *fmt, ...)
+int qprintf(QEString *q, const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
