@@ -58,7 +58,7 @@
 #define __attr_printf(a, b)
 #endif
 
-#if defined(__GNUC__) && __GNUC__ > 2
+#if defined(__GNUC__) && __GNUC__ > 2 && !defined(__cplusplus)
 #define __attr_nonnull(l)    __attribute__((nonnull l))
 #define __unused__           __attribute__((unused))
 #else
