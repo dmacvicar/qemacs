@@ -28,32 +28,65 @@ extern "C" {
 #endif
 
 #include <QDebug>
-#include <QApplication>
-#include <QAbstractScrollArea>
+#include <QObject>
 #include <QMainWindow>
 #include <QFont>
 #include <QFontMetrics>
 #include <QBitmap>
+
+#include "qt.h"
 
 static int force_tty = 0;
 static int font_xsize;
 
 class QEView;
 class QEWindow;
+class QEApplication;
+class QEUIThread;
 
 /* state of a single window */
 typedef struct WindowState {
-    QApplication *app;
+    QEUIThread *uiThread;
+    QEApplication *app;
     QMainWindow *w;
     QEView *v;
     QFont font;
  } WindowState;
 
-class QEView : public QAbstractScrollArea {
+
+QEView::QEView(QWidget *parent)
+        : QAbstractScrollArea(parent)
+{
+}
+
+QEView::~QEView()
+{
+}
+
+QEApplication::QEApplication(int &argc, char **argv)
+        : QApplication(argc, argv)
+{
+    _view = new QEView();
+    _view->show();
+}
 
 
+QEUIThread::QEUIThread(WindowState *ctx)
+        : _ctx(ctx)
+{
+}
 
-};
+void QEUIThread::run()
+{
+    int argc = 0;
+    char *argv[] = {};
+    QEApplication app(argc, argv);
+    _ctx->app = &app;
+    qDebug() << "app created";
+    _ctx->app->processEvents();
+    _ctx->app->exec();
+    qDebug() << "return run()";
+}
 
 static int qt_probe(void)
 {
@@ -77,8 +110,18 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->media = CSS_MEDIA_SCREEN;
     s->bitmap_format = QEBITMAP_FORMAT_RGBA32;
 
-    QApplication *app = new QApplication(0, NULL);
-    ctx->app = app;
+    ctx->uiThread = new QEUIThread(ctx);
+    ctx->app = 0L;
+    //QObject::connect(ctx->uiThread, SIGNAL(started()), ctx->app, SLOT(process()));
+    //connect(ctx->app), SIGNAL(quit()), ctx->uiThread
+    ctx->uiThread->start();
+
+    while (!ctx->app) {
+        qDebug() << "wait for UI thread...";
+    }
+
+    //QMetaObject::invokeMethod(ctx->app, "showView", Qt::QueuedConnection);
+                            //Q_ARG( QString, myString ) );
 
     ctx->font = QFont("Sans");
     QFontMetrics fm(ctx->font);
@@ -100,13 +143,6 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->clip_y1 = 0;
     s->clip_x2 = s->width;
     s->clip_y2 = s->height;
-
-    QEView *v = new QEView();
-    ctx->v = v;
-
-    ctx->v->show();
-
-    ctx->app->processEvents();
 
     return 2;
 }
@@ -298,3 +334,5 @@ static int qt_init(void)
 }
 
 qe_module_init(qt_init);
+
+#include "qt.moc.cpp"

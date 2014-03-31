@@ -251,7 +251,13 @@ $(OBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 $(TOBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 	g++ $(DEFINES) -DCONFIG_TINY $(CFLAGS) -Wno-multichar -o $@ -c $<
 
-$(OBJS_DIR)/qt.o: qt.cpp $(DEPENDS) Makefile
+qt.moc.cpp: qt.cpp $(DEPENDS) Makefile
+	moc -o qt.moc.cpp qt.h
+
+$(OBJS_DIR)/qt.o: qt.cpp qt.moc.cpp $(DEPENDS) Makefile
+	g++ $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
+
+$(TOBJS_DIR)/qt.o: qt.cpp qt.moc.cpp $(DEPENDS) Makefile
 	g++ $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
 
 %.s: %.c $(DEPENDS) Makefile
