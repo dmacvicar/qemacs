@@ -33,6 +33,8 @@ extern "C" {
 #include <QFont>
 #include <QFontMetrics>
 #include <QBitmap>
+#include <QPainter>
+#include <QKeyEvent>
 
 #include "qt.h"
 
@@ -44,48 +46,76 @@ class QEWindow;
 class QEApplication;
 class QEUIThread;
 
-/* state of a single window */
-typedef struct WindowState {
-    QEUIThread *uiThread;
-    QEApplication *app;
-    QMainWindow *w;
-    QEView *v;
-    QFont font;
- } WindowState;
-
-
-QEView::QEView(QWidget *parent)
-        : QAbstractScrollArea(parent)
+QEView::QEView(QEUIContext *ctx, QWidget *parent)
+    : QAbstractScrollArea(parent),
+      _ctx(ctx)
 {
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
 QEView::~QEView()
 {
 }
 
+void QEView::keyPressEvent (QKeyEvent * event)
+{
+    qDebug() << Q_FUNC_INFO;
+    _ctx->app->sendEvent(_ctx->receiver, event);
+}
+
+void QEView::slotResize(const QSize &size)
+{
+    qDebug() << Q_FUNC_INFO << size;
+    resize(size);
+}
+
+void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
+{
+    qDebug() << Q_FUNC_INFO;
+    QPainter painter(_ctx->picture);
+    painter.setPen(color);
+    painter.drawText(x, y, text);
+}
+
+void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color)
+{
+    qDebug() << Q_FUNC_INFO;
+    QPainter painter(_ctx->picture);
+    painter.fillRect(x, y, w, h, color);
+}
+
+void QEView::paintEvent(QPaintEvent *event)
+{
+    qDebug() << Q_FUNC_INFO;
+    QPainter painter(viewport());
+    //painter.drawEllipse(2, 2, 30, 30);
+    //_ctx->picture->play(&painter);
+    painter.drawPicture(0, 0, *_ctx->picture);
+    //QPicture empty;
+    //_ctx->picture->swap(empty);
+}
+
 QEApplication::QEApplication(int &argc, char **argv)
         : QApplication(argc, argv)
 {
-    _view = new QEView();
-    _view->show();
 }
 
-
-QEUIThread::QEUIThread(WindowState *ctx)
-        : _ctx(ctx)
+bool QEUIEventReceiver::event(QEvent *event)
 {
+    qDebug() << Q_FUNC_INFO;
+    return true;
 }
 
-void QEUIThread::run()
-{
+void *qt_thread(void *userdata) {
+    QEUIContext *ctx = (QEUIContext *) userdata;
     int argc = 0;
     char *argv[] = {};
     QEApplication app(argc, argv);
-    _ctx->app = &app;
+    ctx->app = &app;
     qDebug() << "app created";
-    _ctx->app->processEvents();
-    _ctx->app->exec();
-    qDebug() << "return run()";
+    //ctx->resize(QSize(xsize, ysize));
+    ctx->init();
+    return (void * ) ctx->app->exec();
 }
 
 static int qt_probe(void)
@@ -95,12 +125,55 @@ static int qt_probe(void)
     return 2;
 }
 
+void QEUIContext::resize(const QSize &size)
+{
+    QMetaObject::invokeMethod(view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
+}
+
+void QEUIContext::drawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
+{
+    QMetaObject::invokeMethod(view,
+                              "slotDrawText",
+                              Qt::QueuedConnection,
+                              Q_ARG(QFont, font),
+                              Q_ARG(int, x),
+                              Q_ARG(int, y),
+                              Q_ARG(QString, text),
+                              Q_ARG(QColor, color));
+}
+
+void QEUIContext::fillRectangle(int x, int y, int w, int h, const QColor &color)
+{
+    QMetaObject::invokeMethod(view,
+                              "slotFillRectangle",
+                              Qt::QueuedConnection,
+                              Q_ARG(int, x),
+                              Q_ARG(int, y),
+                              Q_ARG(int, w),
+                              Q_ARG(int, h),
+                              Q_ARG(QColor, color));
+}
+
+QEUIContext::QEUIContext()
+{
+    app = 0L;
+}
+
+void QEUIContext::init()
+{
+    Q_ASSERT(app);
+    view = new QEView(this);
+    picture = new QPicture();
+    view->show();
+}
+
 static int qt_init(QEditScreen *s, int w, int h)
 {
     int xsize, ysize, font_ysize;
-    WindowState *ctx;
+    QEUIContext *ctx;
     // here init the application
-    ctx = qe_mallocz(WindowState);
+    //ctx = qe_mallocz(WindowState);
+    ctx = new QEUIContext();
 
     if (ctx == NULL) {
         return -1;
@@ -110,18 +183,13 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->media = CSS_MEDIA_SCREEN;
     s->bitmap_format = QEBITMAP_FORMAT_RGBA32;
 
-    ctx->uiThread = new QEUIThread(ctx);
-    ctx->app = 0L;
-    //QObject::connect(ctx->uiThread, SIGNAL(started()), ctx->app, SLOT(process()));
-    //connect(ctx->app), SIGNAL(quit()), ctx->uiThread
-    ctx->uiThread->start();
+    pthread_create(&ctx->uiThread, NULL, qt_thread, ctx);
 
     while (!ctx->app) {
         qDebug() << "wait for UI thread...";
     }
 
-    //QMetaObject::invokeMethod(ctx->app, "showView", Qt::QueuedConnection);
-                            //Q_ARG( QString, myString ) );
+    ctx->receiver = new QEUIEventReceiver();
 
     ctx->font = QFont("Sans");
     QFontMetrics fm(ctx->font);
@@ -144,6 +212,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->clip_x2 = s->width;
     s->clip_y2 = s->height;
 
+    ctx->resize(QSize(600, 600));
     return 2;
 }
 
@@ -156,33 +225,31 @@ static void qt_close(QEditScreen *s)
 static void qt_flush(QEditScreen *s)
 {
     Q_UNUSED(s);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
+
 }
 
 static int qt_is_user_input_pending(QEditScreen *s)
 {
     Q_UNUSED(s);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
+
     return 0;
 }
 
 static void qt_fill_rectangle(QEditScreen *s,
                               int x1, int y1, int w, int h, QEColor color)
 {
-    Q_UNUSED(s);
-    Q_UNUSED(x1);
-    Q_UNUSED(y1);
-    Q_UNUSED(w);
-    Q_UNUSED(h);
-    Q_UNUSED(color);
-    qDebug();
+    qDebug() << Q_FUNC_INFO << x1 << y1 << w << h;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    ctx->fillRectangle(x1, y1, w, h, QColor::fromRgba(color));
 }
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 {
-    qDebug();
+     qDebug() << Q_FUNC_INFO;
 
-    WindowState *ctx = (WindowState *)s->priv_data;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QEFont *font;
 
     font = qe_mallocz(QEFont);
@@ -242,7 +309,7 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
         QFontMetrics fm(*f);
         metrics->font_ascent = fm.ascent();
         metrics->font_descent = fm.descent();
-        metrics->width = fm.width(QString::fromUtf8((const char *)str, len));
+        metrics->width = fm.width(QString::fromUcs4(str, len));
     }
 }
 
@@ -250,14 +317,11 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
                          int x1, int y, const unsigned int *str, int len,
                          QEColor color)
 {
-    Q_UNUSED(s);
-    Q_UNUSED(font);
-    Q_UNUSED(x1);
-    Q_UNUSED(y);
-    Q_UNUSED(str);
-    Q_UNUSED(len);
-    Q_UNUSED(color);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QFont *f = (QFont *)font->priv_data;
+    QString text = QString::fromUcs4(str, len);
+    ctx->drawText(*f, x1, y, text, QColor::fromRgba(color));
 }
 
 static void qt_set_clip(QEditScreen *s,
@@ -268,14 +332,14 @@ static void qt_set_clip(QEditScreen *s,
     Q_UNUSED(y);
     Q_UNUSED(w);
     Q_UNUSED(h);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
 }
 
 static int qt_bmp_alloc(QEditScreen *s, QEBitmap *b)
 {
     Q_UNUSED(s);
     Q_UNUSED(b);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
     return 0;
 }
 
@@ -283,14 +347,14 @@ static void qt_bmp_free(QEditScreen *s, QEBitmap *b)
 {
     Q_UNUSED(s);
     Q_UNUSED(b);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
     b->priv_data = NULL;
 }
 
 static void qt_full_screen(QEditScreen *s, int full_screen)
 {
-    qDebug();
-    WindowState *ctx = (WindowState *)s->priv_data;
+    qDebug() << Q_FUNC_INFO;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
 }
 
 static QEDisplay qt_dpy = {
