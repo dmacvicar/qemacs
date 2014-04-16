@@ -82,7 +82,7 @@ endif
 
 ifdef CONFIG_QT
   OBJS+= qt.o
-  LIBS+= `pkg-config --libs QtGui QtCore` -lstdc++
+  LIBS+= `pkg-config --libs QtGui QtCore` -lstdc++ -lpthread
   CFLAGS+= `pkg-config --cflags QtGui QtCore`
 endif
 

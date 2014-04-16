@@ -37,12 +37,6 @@ private:
 
 };
 
-class QEUIEventReceiver : public QObject
-{
-public:
-    virtual bool event(QEvent *event);
-};
-
 // this cant be a QObject. Told you.
 class QEUIContext
 {
@@ -59,13 +53,13 @@ public:
     QMainWindow *window;
     QEView *view;
 
-    // this has to be initialized AFTER
-    // QApplication
-    QEUIEventReceiver *receiver;
-
     // qemacs hooks end painting here
     // and we replay on paintEvent
     QPicture *picture;
+    QPixmap pixmap;
+
+    int events_rd;
+    int events_wr;
 
     void resize(const QSize &size);
     void drawText(const QFont &font, int, int, const QString &text, const QColor &color);

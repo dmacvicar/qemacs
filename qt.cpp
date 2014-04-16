@@ -60,7 +60,131 @@ QEView::~QEView()
 void QEView::keyPressEvent (QKeyEvent * event)
 {
     qDebug() << Q_FUNC_INFO;
-    _ctx->app->sendEvent(_ctx->receiver, event);
+
+    QEKeyEvent ev;
+    ev.type = QE_KEY_EVENT;
+
+    bool ctrl = event->modifiers() && Qt::ControlModifier;
+    bool shift = event->modifiers() && Qt::ShiftModifier;
+    bool meta = event->modifiers() && Qt::MetaModifier;
+
+    switch (event->key()) {
+    // in the same order as qe.h
+    case Qt::Key_Tab:
+        ev.key = shift ? KEY_SHIFT_TAB : KEY_TAB;
+        break;
+    case Qt::Key_Return:
+        ev.key = KEY_RET;
+        break;
+    case Qt::Key_Escape:
+        ev.key = KEY_ESC;
+        break;
+    case Qt::Key_Space:
+        ev.key = KEY_SPC;
+        break;
+    //case Qt::Key_????:
+        //ev.key = KEY_DEL;
+        //break;
+    case Qt::Key_Backspace:
+        ev.key = KEY_BS;
+        break;
+    case Qt::Key_Up:
+        ev.key = ctrl ? KEY_CTRL_UP : KEY_UP;
+        break;
+    case Qt::Key_Down:
+        ev.key = ctrl ? KEY_CTRL_DOWN : KEY_DOWN;
+        break;
+    case Qt::Key_Right:
+        ev.key = ctrl ? KEY_CTRL_RIGHT: KEY_RIGHT;
+        break;
+    case Qt::Key_Left:
+        ev.key = ctrl ? KEY_CTRL_LEFT : KEY_LEFT;
+        break;
+    case Qt::Key_End:
+        ev.key = ctrl ? KEY_CTRL_END : KEY_END;
+        break;
+   case Qt::Key_Home:
+        ev.key = ctrl ? KEY_CTRL_HOME : KEY_HOME;
+        break;
+   case Qt::Key_PageUp:
+        ev.key = ctrl ? KEY_CTRL_PAGEUP : KEY_PAGEUP;
+        break;
+   case Qt::Key_PageDown:
+        ev.key = ctrl ? KEY_CTRL_PAGEDOWN : KEY_PAGEDOWN;
+        break;
+   case Qt::Key_Insert:
+        ev.key = KEY_INSERT;
+        break;
+   case Qt::Key_Delete:
+        ev.key = KEY_DELETE;
+        break;
+   case Qt::Key_F1:
+        ev.key = KEY_F1;
+        break;
+   case Qt::Key_F2:
+        ev.key = KEY_F2;
+        break;
+   case Qt::Key_F3:
+        ev.key = KEY_F3;
+        break;
+   case Qt::Key_F4:
+        ev.key = KEY_F4;
+        break;
+   case Qt::Key_F5:
+        ev.key = KEY_F5;
+        break;
+   case Qt::Key_F6:
+        ev.key = KEY_F6;
+        break;
+   case Qt::Key_F7:
+        ev.key = KEY_F7;
+        break;
+   case Qt::Key_F8:
+        ev.key = KEY_F8;
+        break;
+   case Qt::Key_F9:
+        ev.key = KEY_F9;
+        break;
+   case Qt::Key_F10:
+        ev.key = KEY_F10;
+        break;
+   case Qt::Key_F11:
+        ev.key = KEY_F11;
+        break;
+   case Qt::Key_F12:
+        ev.key = KEY_F12;
+        break;
+   case Qt::Key_F13:
+        ev.key = KEY_F13;
+        break;
+   case Qt::Key_F14:
+        ev.key = KEY_F14;
+        break;
+   case Qt::Key_F15:
+        ev.key = KEY_F15;
+        break;
+   case Qt::Key_F16:
+        ev.key = KEY_F16;
+        break;
+   case Qt::Key_F17:
+        ev.key = KEY_F17;
+        break;
+   case Qt::Key_F18:
+        ev.key = KEY_F18;
+        break;
+   case Qt::Key_F19:
+        ev.key = KEY_F19;
+        break;
+   case Qt::Key_F20:
+        ev.key = KEY_F20;
+        break;
+    default:
+        qDebug() << Q_FUNC_INFO << " other key";
+    }
+
+    ev.key = KEY_DEFAULT;
+
+    write(_ctx->events_wr, &ev, sizeof(QEEvent));
 }
 
 void QEView::slotResize(const QSize &size)
@@ -100,21 +224,16 @@ QEApplication::QEApplication(int &argc, char **argv)
 {
 }
 
-bool QEUIEventReceiver::event(QEvent *event)
-{
-    qDebug() << Q_FUNC_INFO;
-    return true;
-}
-
 void *qt_thread(void *userdata) {
     QEUIContext *ctx = (QEUIContext *) userdata;
     int argc = 0;
     char *argv[] = {};
     QEApplication app(argc, argv);
+
     ctx->app = &app;
     qDebug() << "app created";
-    //ctx->resize(QSize(xsize, ysize));
     ctx->init();
+    //ctx->resize(QSize(xsize, ysize));
     return (void * ) ctx->app->exec();
 }
 
@@ -157,6 +276,7 @@ void QEUIContext::fillRectangle(int x, int y, int w, int h, const QColor &color)
 QEUIContext::QEUIContext()
 {
     app = 0L;
+    view = 0L;
 }
 
 void QEUIContext::init()
@@ -166,6 +286,8 @@ void QEUIContext::init()
     picture = new QPicture();
     view->show();
 }
+
+static void qt_handle_event(void *opaque);
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
@@ -183,13 +305,26 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->media = CSS_MEDIA_SCREEN;
     s->bitmap_format = QEBITMAP_FORMAT_RGBA32;
 
+    int event_pipe[2];
+    if (pipe(event_pipe) < 0)
+        return -1;
+
+    fcntl(event_pipe[0], F_SETFD, FD_CLOEXEC);
+    fcntl(event_pipe[1], F_SETFD, FD_CLOEXEC);
+
+    ctx->events_rd = event_pipe[0];
+    ctx->events_wr  = event_pipe[1];
+    set_read_handler(event_pipe[0], qt_handle_event, s);
+
     pthread_create(&ctx->uiThread, NULL, qt_thread, ctx);
 
     while (!ctx->app) {
         qDebug() << "wait for UI thread...";
     }
 
-    ctx->receiver = new QEUIEventReceiver();
+    while (!ctx->view) {
+        qDebug() << "wait for view in thread...";
+    }
 
     ctx->font = QFont("Sans");
     QFontMetrics fm(ctx->font);
@@ -224,9 +359,10 @@ static void qt_close(QEditScreen *s)
 
 static void qt_flush(QEditScreen *s)
 {
-    Q_UNUSED(s);
     qDebug() << Q_FUNC_INFO;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
 
+    ctx->view->repaint(0, 0, ctx->view->width(), ctx->view->height());
 }
 
 static int qt_is_user_input_pending(QEditScreen *s)
@@ -235,6 +371,20 @@ static int qt_is_user_input_pending(QEditScreen *s)
     qDebug() << Q_FUNC_INFO;
 
     return 0;
+}
+
+static void qt_handle_event(void *opaque)
+{
+    qDebug() << Q_FUNC_INFO;
+
+    QEditScreen *s = (QEditScreen *)opaque;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+
+    QEEvent ev;
+    if (read(ctx->events_rd, &ev, sizeof(ev)) < (signed)sizeof(ev))
+        return;
+
+    qe_handle_event(&ev);
 }
 
 static void qt_fill_rectangle(QEditScreen *s,
