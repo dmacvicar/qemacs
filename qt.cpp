@@ -196,7 +196,7 @@ void QEView::slotResize(const QSize &size)
 void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
 {
     qDebug() << Q_FUNC_INFO;
-    QPainter painter(_ctx->picture);
+    QPainter painter(_ctx->image);
     painter.setPen(color);
     painter.drawText(x, y, text);
 }
@@ -204,7 +204,7 @@ void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, 
 void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color)
 {
     qDebug() << Q_FUNC_INFO;
-    QPainter painter(_ctx->picture);
+    QPainter painter(_ctx->image);
     painter.fillRect(x, y, w, h, color);
 }
 
@@ -214,9 +214,11 @@ void QEView::paintEvent(QPaintEvent *event)
     QPainter painter(viewport());
     //painter.drawEllipse(2, 2, 30, 30);
     //_ctx->picture->play(&painter);
-    painter.drawPicture(0, 0, *_ctx->picture);
+    //painter.drawPicture(0, 0, *_ctx->picture);
     //QPicture empty;
     //_ctx->picture->swap(empty);
+    //bitBlt(viewport(), 0, 0, &_ctx->pixmap);
+    painter.drawImage(0, 0, *_ctx->image);
 }
 
 QEApplication::QEApplication(int &argc, char **argv)
@@ -246,6 +248,8 @@ static int qt_probe(void)
 
 void QEUIContext::resize(const QSize &size)
 {
+    QImage tmp(size, QImage::Format_ARGB8555_Premultiplied);
+    image->swap(tmp);
     QMetaObject::invokeMethod(view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
 }
 
@@ -283,7 +287,7 @@ void QEUIContext::init()
 {
     Q_ASSERT(app);
     view = new QEView(this);
-    picture = new QPicture();
+    image = new QImage();
     view->show();
 }
 

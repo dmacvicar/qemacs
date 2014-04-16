@@ -55,8 +55,7 @@ public:
 
     // qemacs hooks end painting here
     // and we replay on paintEvent
-    QPicture *picture;
-    QPixmap pixmap;
+    QImage *image;
 
     int events_rd;
     int events_wr;
