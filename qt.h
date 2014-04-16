@@ -63,6 +63,8 @@ public:
     void resize(const QSize &size);
     void drawText(const QFont &font, int, int, const QString &text, const QColor &color);
     void fillRectangle(int, int, int, int, const QColor &);
+    void flush();
 };
+
 
 #endif

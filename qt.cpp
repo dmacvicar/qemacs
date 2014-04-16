@@ -253,6 +253,13 @@ void QEUIContext::resize(const QSize &size)
     QMetaObject::invokeMethod(view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
 }
 
+void QEUIContext::flush()
+{
+    QMetaObject::invokeMethod(view,
+                              "update",
+                              Qt::QueuedConnection);
+}
+
 void QEUIContext::drawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
 {
     QMetaObject::invokeMethod(view,
@@ -365,8 +372,7 @@ static void qt_flush(QEditScreen *s)
 {
     qDebug() << Q_FUNC_INFO;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-
-    ctx->view->repaint(0, 0, ctx->view->width(), ctx->view->height());
+    ctx->flush();
 }
 
 static int qt_is_user_input_pending(QEditScreen *s)
