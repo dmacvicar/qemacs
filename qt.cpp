@@ -27,6 +27,8 @@ extern "C" {
 }
 #endif
 
+#include <iostream>
+
 #include <QDebug>
 #include <QObject>
 #include <QMainWindow>
@@ -48,9 +50,10 @@ class QEUIThread;
 
 QEView::QEView(QEUIContext *ctx, QWidget *parent)
     : QAbstractScrollArea(parent),
-      _ctx(ctx)
+      _ctx(ctx),
+      _repaints(0)
 {
-    setAttribute(Qt::WA_OpaquePaintEvent, true);
+//setAttribute(Qt::WA_OpaquePaintEvent);
 }
 
 QEView::~QEView()
@@ -69,6 +72,10 @@ void QEView::keyPressEvent (QKeyEvent * event)
     bool meta = event->modifiers() && Qt::MetaModifier;
 
     switch (event->key()) {
+    case Qt::Key_Control:
+    case Qt::Key_Meta:
+      ev.key = KEY_DEFAULT;
+      break;
     // in the same order as qe.h
     case Qt::Key_Tab:
         ev.key = shift ? KEY_SHIFT_TAB : KEY_TAB;
@@ -86,7 +93,7 @@ void QEView::keyPressEvent (QKeyEvent * event)
         //ev.key = KEY_DEL;
         //break;
     case Qt::Key_Backspace:
-        ev.key = KEY_BS;
+        ev.key = meta ? KEY_META(KEY_DEL) : KEY_DEL;
         break;
     case Qt::Key_Up:
         ev.key = ctrl ? KEY_CTRL_UP : KEY_UP;
@@ -179,47 +186,96 @@ void QEView::keyPressEvent (QKeyEvent * event)
         ev.key = KEY_F20;
         break;
     default:
-        qDebug() << Q_FUNC_INFO << " other key";
-    }
+        if (event->text().isEmpty()) {
+            qDebug() << Q_FUNC_INFO << "empty key" << event->nativeScanCode();
+            return;
+        }
 
-    ev.key = KEY_DEFAULT;
+        ev.key = event->text().at(0).toAscii();
+        qDebug() << Q_FUNC_INFO << " other key" << event->nativeScanCode();
+    }
 
     write(_ctx->events_wr, &ev, sizeof(QEEvent));
 }
 
 void QEView::slotResize(const QSize &size)
 {
-    qDebug() << Q_FUNC_INFO << size;
+    qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
+    
     resize(size);
 }
 
-void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
+void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << color;
     QPainter painter(_ctx->image);
     painter.setPen(color);
+
+    if (xorMode) {
+        //painter.setCompositionMode(QPainter::CompositionMode_Xor);
+        painter.setCompositionMode(QPainter::RasterOp_NotSource);
+    }
+
     painter.drawText(x, y, text);
+    _repaints++;
 }
 
-void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color)
+void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO;
     QPainter painter(_ctx->image);
+    if (xorMode) {
+        painter.setCompositionMode(QPainter::CompositionMode_Xor);
+        //painter.setCompositionMode(QPainter::RasterOp_NotSource);
+    }
+    else
     painter.fillRect(x, y, w, h, color);
+    _repaints++;
+}
+
+void QEView::slotFlush()
+{
+    qDebug() << Q_FUNC_INFO;
+    viewport()->update(_clip);
+}
+
+void QEView::slotSetClip(int x, int y, int w, int h)
+{
+    qDebug() << Q_FUNC_INFO << x << y << w << h;
+    _clip.setRect(x, y, w, h);
 }
 
 void QEView::paintEvent(QPaintEvent *event)
 {
     qDebug() << Q_FUNC_INFO;
     QPainter painter(viewport());
-    //painter.drawEllipse(2, 2, 30, 30);
-    //_ctx->picture->play(&painter);
-    //painter.drawPicture(0, 0, *_ctx->picture);
-    //QPicture empty;
-    //_ctx->picture->swap(empty);
-    //bitBlt(viewport(), 0, 0, &_ctx->pixmap);
-    painter.drawImage(0, 0, *_ctx->image);
+    painter.drawImage(event->rect().x(),
+                      event->rect().y(),
+                      *_ctx->image,
+                      event->rect().x(),
+                      event->rect().y(),
+                      event->rect().x() + event->rect().width() - 1,
+                      event->rect().y() + event->rect().height() - 1);
 }
+
+void QEView::closeEvent(QCloseEvent * event)
+{
+    QEEvent ev;
+    // cancel pending operation
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('g');
+    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+
+    // simulate C-x C-c
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('x');
+    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('c');
+    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+}
+
 
 QEApplication::QEApplication(int &argc, char **argv)
         : QApplication(argc, argv)
@@ -244,44 +300,6 @@ static int qt_probe(void)
     if (force_tty)
         return 0;
     return 2;
-}
-
-void QEUIContext::resize(const QSize &size)
-{
-    QImage tmp(size, QImage::Format_ARGB8555_Premultiplied);
-    image->swap(tmp);
-    QMetaObject::invokeMethod(view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
-}
-
-void QEUIContext::flush()
-{
-    QMetaObject::invokeMethod(view,
-                              "update",
-                              Qt::QueuedConnection);
-}
-
-void QEUIContext::drawText(const QFont &font, int x, int y, const QString &text, const QColor &color)
-{
-    QMetaObject::invokeMethod(view,
-                              "slotDrawText",
-                              Qt::QueuedConnection,
-                              Q_ARG(QFont, font),
-                              Q_ARG(int, x),
-                              Q_ARG(int, y),
-                              Q_ARG(QString, text),
-                              Q_ARG(QColor, color));
-}
-
-void QEUIContext::fillRectangle(int x, int y, int w, int h, const QColor &color)
-{
-    QMetaObject::invokeMethod(view,
-                              "slotFillRectangle",
-                              Qt::QueuedConnection,
-                              Q_ARG(int, x),
-                              Q_ARG(int, y),
-                              Q_ARG(int, w),
-                              Q_ARG(int, h),
-                              Q_ARG(QColor, color));
 }
 
 QEUIContext::QEUIContext()
@@ -358,7 +376,12 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->clip_x2 = s->width;
     s->clip_y2 = s->height;
 
-    ctx->resize(QSize(600, 600));
+    // initialize the double buffer
+    QSize size(xsize, ysize);
+    QImage tmp(size, QImage::Format_ARGB8555_Premultiplied);
+    ctx->image->swap(tmp);
+
+    QMetaObject::invokeMethod(ctx->view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
     return 2;
 }
 
@@ -366,13 +389,17 @@ static void qt_close(QEditScreen *s)
 {
     Q_UNUSED(s);
     qDebug();
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    Q_UNUSED(ctx);
 }
 
 static void qt_flush(QEditScreen *s)
 {
     qDebug() << Q_FUNC_INFO;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-    ctx->flush();
+    QMetaObject::invokeMethod(ctx->view,
+                              "slotFlush",
+                              Qt::QueuedConnection);
 }
 
 static int qt_is_user_input_pending(QEditScreen *s)
@@ -402,7 +429,19 @@ static void qt_fill_rectangle(QEditScreen *s,
 {
     qDebug() << Q_FUNC_INFO << x1 << y1 << w << h;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-    ctx->fillRectangle(x1, y1, w, h, QColor::fromRgba(color));
+
+    bool xorMode = (color == QECOLOR_XOR);
+
+    //QPainter::CompositionMode_Xor
+    QMetaObject::invokeMethod(ctx->view,
+                              "slotFillRectangle",
+                              Qt::QueuedConnection,
+                              Q_ARG(int, x1),
+                              Q_ARG(int, y1),
+                              Q_ARG(int, w),
+                              Q_ARG(int, h),
+                              Q_ARG(QColor, QColor::fromRgba(color)),
+                              Q_ARG(bool, xorMode));
 }
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size)
@@ -481,18 +520,32 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QFont *f = (QFont *)font->priv_data;
     QString text = QString::fromUcs4(str, len);
-    ctx->drawText(*f, x1, y, text, QColor::fromRgba(color));
+
+    bool xorMode = (color == QECOLOR_XOR);
+
+    QMetaObject::invokeMethod(ctx->view,
+                              "slotDrawText",
+                              Qt::QueuedConnection,
+                              Q_ARG(QFont, *f),
+                              Q_ARG(int, x1),
+                              Q_ARG(int, y),
+                              Q_ARG(QString, text),
+                              Q_ARG(QColor, QColor::fromRgba(color)),
+                              Q_ARG(bool, xorMode));
 }
 
 static void qt_set_clip(QEditScreen *s,
                         int x, int y, int w, int h)
 {
-    Q_UNUSED(s);
-    Q_UNUSED(x);
-    Q_UNUSED(y);
-    Q_UNUSED(w);
-    Q_UNUSED(h);
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << x << y << w << h;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QMetaObject::invokeMethod(ctx->view,
+                              "slotSetClip",
+                              Qt::QueuedConnection,
+                              Q_ARG(int, x),
+                              Q_ARG(int, y),
+                              Q_ARG(int, w),
+                              Q_ARG(int, h));
 }
 
 static int qt_bmp_alloc(QEditScreen *s, QEBitmap *b)

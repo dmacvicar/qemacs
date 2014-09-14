@@ -17,15 +17,21 @@ class QEView : public QAbstractScrollArea
 public:
     QEView(QEUIContext *ctx, QWidget *parent = 0);
     ~QEView();
-    void keyPressEvent(QKeyEvent *event);
+    void keyPressEvent(QKeyEvent *);
 protected:
-    virtual void paintEvent(QPaintEvent *event);
+    virtual void paintEvent(QPaintEvent *);
+    virtual void closeEvent (QCloseEvent *);
 public slots:
-    void slotDrawText(const QFont &font, int, int, const QString &text, const QColor &color);
-    void slotFillRectangle(int, int, int, int, const QColor &);
-    void slotResize(const QSize &size);
+    void slotDrawText(const QFont &, int, int, const QString &, const QColor &, bool);
+    void slotFillRectangle(int, int, int, int, const QColor &, bool);
+    void slotResize(const QSize &);
+    void slotFlush();
+    void slotSetClip(int, int, int, int);
 private:
     QEUIContext *_ctx;
+    // when we draw in the double buffer, we increase this
+    int _repaints;
+    QRect _clip;
 };
 
 class QEApplication : public QApplication
@@ -60,9 +66,6 @@ public:
     int events_rd;
     int events_wr;
 
-    void resize(const QSize &size);
-    void drawText(const QFont &font, int, int, const QString &text, const QColor &color);
-    void fillRectangle(int, int, int, int, const QColor &);
     void flush();
 };
 
