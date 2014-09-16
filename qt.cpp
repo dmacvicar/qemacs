@@ -49,7 +49,7 @@ class QEApplication;
 class QEUIThread;
 
 QEView::QEView(QEUIContext *ctx, QWidget *parent)
-    : QAbstractScrollArea(parent),
+    : QWidget(parent),
       _ctx(ctx),
       _repaints(0)
 {
@@ -201,14 +201,16 @@ void QEView::keyPressEvent (QKeyEvent * event)
 void QEView::slotResize(const QSize &size)
 {
     qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
-    
     resize(size);
+
+    // update all the widget in future repaint
+    _clip.setRect(0, 0, size.width(), size.height());
 }
 
 void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO << color;
-    QPainter painter(_ctx->image);
+    QPainter painter(&_ctx->image);
     painter.setPen(color);
 
     if (xorMode) {
@@ -223,7 +225,7 @@ void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, 
 void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO;
-    QPainter painter(_ctx->image);
+    QPainter painter(&_ctx->image);
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
         //painter.setCompositionMode(QPainter::RasterOp_NotSource);
@@ -235,8 +237,17 @@ void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, 
 
 void QEView::slotFlush()
 {
-    qDebug() << Q_FUNC_INFO;
-    viewport()->update(_clip);
+    qDebug() << Q_FUNC_INFO << "updates enabled: " << updatesEnabled();
+
+    //Q_ASSERT(!_clip.isEmpty());
+    //qDebug() << Q_FUNC_INFO << rect() << _clip;
+    //Q_ASSERT(!rect().intersected(_clip).isEmpty());
+
+    /// XXX clipping disabled for now
+    //update(_clip);
+    update(rect());
+
+    _ctx->app->processEvents();
 }
 
 void QEView::slotSetClip(int x, int y, int w, int h)
@@ -247,11 +258,11 @@ void QEView::slotSetClip(int x, int y, int w, int h)
 
 void QEView::paintEvent(QPaintEvent *event)
 {
-    qDebug() << Q_FUNC_INFO;
-    QPainter painter(viewport());
+    qDebug() << Q_FUNC_INFO << event->rect();
+    QPainter painter(this);
     painter.drawImage(event->rect().x(),
                       event->rect().y(),
-                      *_ctx->image,
+                      _ctx->image,
                       event->rect().x(),
                       event->rect().y(),
                       event->rect().x() + event->rect().width() - 1,
@@ -291,15 +302,7 @@ static int qt_probe(void)
 
 QEUIContext::QEUIContext()
 {
-    app = 0L;
-    view = 0L;
-}
-
-void QEUIContext::init()
-{
-    Q_ASSERT(app);
     view = new QEView(this);
-    image = new QImage();
     view->show();
 }
 
@@ -314,6 +317,10 @@ static void _qt_process_events_timer(void *opaque)
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
+    int argc = 0;
+    char *argv[] = {};
+    QEApplication *app = new QEApplication(argc, argv);
+
     int xsize, ysize, font_ysize;
     QEUIContext *ctx;
     // here init the application
@@ -339,12 +346,8 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->events_wr  = event_pipe[1];
     set_read_handler(event_pipe[0], qt_handle_event, s);
 
-    int argc = 0;
-    char *argv[] = {};
-    QEApplication *app = new QEApplication(argc, argv);
     ctx->app = app;
     qDebug() << "app created";
-    ctx->init();
 
     ctx->font = QFont("Sans");
     QFontMetrics fm(ctx->font);
@@ -369,10 +372,11 @@ static int qt_init(QEditScreen *s, int w, int h)
 
     // initialize the double buffer
     QSize size(xsize, ysize);
-    QImage tmp(size, QImage::Format_ARGB8555_Premultiplied);
-    ctx->image->swap(tmp);
+    QImage tmp(size, QImage::Format_ARGB32);
+    ctx->image.swap(tmp);
 
-    QMetaObject::invokeMethod(ctx->view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
+    ctx->view->slotResize(size);
+    ctx->app->processEvents();
 
     qe_add_timer(0, ctx->app, _qt_process_events_timer);
     return 2;
@@ -390,9 +394,8 @@ static void qt_flush(QEditScreen *s)
 {
     qDebug() << Q_FUNC_INFO;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-    QMetaObject::invokeMethod(ctx->view,
-                              "slotFlush",
-                              Qt::QueuedConnection);
+    ctx->view->slotFlush();
+
 }
 
 static int qt_is_user_input_pending(QEditScreen *s)
@@ -425,16 +428,9 @@ static void qt_fill_rectangle(QEditScreen *s,
 
     bool xorMode = (color == QECOLOR_XOR);
 
-    //QPainter::CompositionMode_Xor
-    QMetaObject::invokeMethod(ctx->view,
-                              "slotFillRectangle",
-                              Qt::QueuedConnection,
-                              Q_ARG(int, x1),
-                              Q_ARG(int, y1),
-                              Q_ARG(int, w),
-                              Q_ARG(int, h),
-                              Q_ARG(QColor, QColor::fromRgba(color)),
-                              Q_ARG(bool, xorMode));
+    ctx->view->slotFillRectangle(x1, y1, w, h,
+                                 QColor::fromRgba(color), xorMode);
+
 }
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size)
@@ -516,15 +512,8 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
 
     bool xorMode = (color == QECOLOR_XOR);
 
-    QMetaObject::invokeMethod(ctx->view,
-                              "slotDrawText",
-                              Qt::QueuedConnection,
-                              Q_ARG(QFont, *f),
-                              Q_ARG(int, x1),
-                              Q_ARG(int, y),
-                              Q_ARG(QString, text),
-                              Q_ARG(QColor, QColor::fromRgba(color)),
-                              Q_ARG(bool, xorMode));
+    ctx->view->slotDrawText(*f, x1, y, text,
+                            QColor::fromRgba(color), xorMode);
 }
 
 static void qt_set_clip(QEditScreen *s,
@@ -532,13 +521,7 @@ static void qt_set_clip(QEditScreen *s,
 {
     qDebug() << Q_FUNC_INFO << x << y << w << h;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-    QMetaObject::invokeMethod(ctx->view,
-                              "slotSetClip",
-                              Qt::QueuedConnection,
-                              Q_ARG(int, x),
-                              Q_ARG(int, y),
-                              Q_ARG(int, w),
-                              Q_ARG(int, h));
+    ctx->view->slotSetClip(x, y, x + w - 1, y + h - 1);
 }
 
 static int qt_bmp_alloc(QEditScreen *s, QEBitmap *b)

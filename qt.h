@@ -11,7 +11,7 @@
 
 class QEUIContext;
 
-class QEView : public QAbstractScrollArea
+class QEView : public QWidget
 {
     Q_OBJECT
 public:
@@ -51,9 +51,6 @@ public:
     // is running and the QApplication created
     QEUIContext();
 
-    void init();
-
-    pthread_t uiThread;
     QEApplication *app;
     QFont font;
     QMainWindow *window;
@@ -61,7 +58,7 @@ public:
 
     // qemacs hooks end painting here
     // and we replay on paintEvent
-    QImage *image;
+    QImage image;
 
     int events_rd;
     int events_wr;
