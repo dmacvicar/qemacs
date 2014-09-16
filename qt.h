@@ -27,11 +27,13 @@ public slots:
     void slotResize(const QSize &);
     void slotFlush();
     void slotSetClip(int, int, int, int);
+    void slotSetCursor(int, int, int, int);
 private:
     QEUIContext *_ctx;
     // when we draw in the double buffer, we increase this
     int _repaints;
     QRect _clip;
+    QRect _cursor;
 };
 
 class QEApplication : public QApplication

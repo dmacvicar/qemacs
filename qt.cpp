@@ -207,6 +207,11 @@ void QEView::slotResize(const QSize &size)
     _clip.setRect(0, 0, size.width(), size.height());
 }
 
+void QEView::slotSetCursor(int x, int y, int w, int h)
+{
+    _cursor.setRect(x, y, w, h);
+}
+
 void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO << color;
@@ -267,6 +272,8 @@ void QEView::paintEvent(QPaintEvent *event)
                       event->rect().y(),
                       event->rect().x() + event->rect().width() - 1,
                       event->rect().y() + event->rect().height() - 1);
+
+    painter.fillRect(_cursor.x(), _cursor.y(), _cursor.width(), 1, Qt::white);
 }
 
 void QEView::closeEvent(QCloseEvent * event)
@@ -524,6 +531,14 @@ static void qt_set_clip(QEditScreen *s,
     ctx->view->slotSetClip(x, y, x + w - 1, y + h - 1);
 }
 
+static void qt_cursor_at(QEditScreen *s, int x1, int y1,
+                         int w, int h)
+{
+    qDebug() << Q_FUNC_INFO << x1 << y1 << w << h;
+    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    ctx->view->slotSetCursor(x1, y1, w, h);
+}
+
 static int qt_bmp_alloc(QEditScreen *s, QEBitmap *b)
 {
     Q_UNUSED(s);
@@ -562,7 +577,7 @@ static QEDisplay qt_dpy = {
     NULL, /* no selection handling */
     NULL, /* no selection handling */
     NULL, /* dpy_invalidate */
-    NULL, /* dpy_cursor_at */
+    qt_cursor_at,
     qt_bmp_alloc, /* dpy_bmp_alloc */
     qt_bmp_free, /* dpy_bmp_free */
     NULL, /* dpy_bmp_draw */
