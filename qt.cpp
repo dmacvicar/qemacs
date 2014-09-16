@@ -282,19 +282,6 @@ QEApplication::QEApplication(int &argc, char **argv)
 {
 }
 
-void *qt_thread(void *userdata) {
-    QEUIContext *ctx = (QEUIContext *) userdata;
-    int argc = 0;
-    char *argv[] = {};
-    QEApplication app(argc, argv);
-
-    ctx->app = &app;
-    qDebug() << "app created";
-    ctx->init();
-    //ctx->resize(QSize(xsize, ysize));
-    return (void * ) ctx->app->exec();
-}
-
 static int qt_probe(void)
 {
     if (force_tty)
@@ -317,6 +304,13 @@ void QEUIContext::init()
 }
 
 static void qt_handle_event(void *opaque);
+
+static void _qt_process_events_timer(void *opaque)
+{
+    QApplication *app = (QApplication *)(opaque);
+    app->processEvents();
+    qe_add_timer(0, opaque, _qt_process_events_timer);
+}
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
@@ -345,15 +339,12 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->events_wr  = event_pipe[1];
     set_read_handler(event_pipe[0], qt_handle_event, s);
 
-    pthread_create(&ctx->uiThread, NULL, qt_thread, ctx);
-
-    while (!ctx->app) {
-        qDebug() << "wait for UI thread...";
-    }
-
-    while (!ctx->view) {
-        qDebug() << "wait for view in thread...";
-    }
+    int argc = 0;
+    char *argv[] = {};
+    QEApplication *app = new QEApplication(argc, argv);
+    ctx->app = app;
+    qDebug() << "app created";
+    ctx->init();
 
     ctx->font = QFont("Sans");
     QFontMetrics fm(ctx->font);
@@ -382,6 +373,8 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->image->swap(tmp);
 
     QMetaObject::invokeMethod(ctx->view, "slotResize", Qt::QueuedConnection, Q_ARG(QSize, size));
+
+    qe_add_timer(0, ctx->app, _qt_process_events_timer);
     return 2;
 }
 

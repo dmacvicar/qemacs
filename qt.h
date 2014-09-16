@@ -68,6 +68,5 @@ public:
 
     void flush();
 };
-
-
 #endif
+
