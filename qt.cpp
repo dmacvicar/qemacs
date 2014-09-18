@@ -454,7 +454,8 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
     if (!font)
         return NULL;
 
-    QFont *f = new QFont();;
+    QFont *f = new QFont();
+    f->setPointSize(size);
 
     switch (style & QE_FAMILY_MASK) {
     default:
