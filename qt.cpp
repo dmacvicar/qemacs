@@ -201,8 +201,9 @@ void QEView::keyPressEvent (QKeyEvent * event)
 void QEView::slotResize(const QSize &size)
 {
     qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
+    QImage tmp(size, QImage::Format_ARGB32);
+    _ctx->image.swap(tmp);
     resize(size);
-
     // update all the widget in future repaint
     _clip.setRect(0, 0, size.width(), size.height());
 }
