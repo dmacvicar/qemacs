@@ -451,16 +451,18 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
     if (!font)
         return NULL;
 
-    QFont *f;
+    QFont *f = new QFont();;
 
     switch (style & QE_FAMILY_MASK) {
     default:
     case QE_FAMILY_FIXED:
-        f = new QFont();
+        f->setStyleHint(QFont::Monospace);
         break;
     case QE_FAMILY_SANS:
+        f->setStyleHint(QFont::SansSerif);
+        break;
     case QE_FAMILY_SERIF:
-        f = new QFont("Serif");
+        f->setStyleHint(QFont::Serif);
         break;
     }
 
