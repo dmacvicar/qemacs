@@ -273,7 +273,9 @@ void QEView::paintEvent(QPaintEvent *event)
                       event->rect().x() + event->rect().width() - 1,
                       event->rect().y() + event->rect().height() - 1);
 
-    painter.fillRect(_cursor.x(), _cursor.y(), _cursor.width(), 1, Qt::white);
+    QImage cursorImg = _ctx->image.copy(_cursor);
+    cursorImg.invertPixels();
+    painter.drawImage(QPoint(_cursor.x(), _cursor.y()), cursorImg);
 }
 
 void QEView::closeEvent(QCloseEvent * event)
