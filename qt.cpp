@@ -445,7 +445,7 @@ static void qt_fill_rectangle(QEditScreen *s,
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 {
-     qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO;
 
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QEFont *font;
