@@ -16,3 +16,4 @@ libqhtml/libqhtml.a
 fbffonts.c
 fbftoqe
 html2png
+qe-doc.html
