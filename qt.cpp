@@ -42,6 +42,7 @@ extern "C" {
 
 static int force_tty = 0;
 static int font_xsize;
+static int font_ptsize;
 
 class QEView;
 class QEWindow;
@@ -325,10 +326,15 @@ static void _qt_process_events_timer(void *opaque)
     qe_add_timer(0, opaque, _qt_process_events_timer);
 }
 
+static QEFont *qt_open_font(QEditScreen *s, int style, int size);
+
 static int qt_init(QEditScreen *s, int w, int h)
 {
     int argc = 0;
     char *argv[] = {};
+    QEFont *font;
+    QEStyleDef default_style;
+
     QEApplication *app = new QEApplication(argc, argv);
 
     int xsize, ysize, font_ysize;
@@ -359,8 +365,20 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->app = app;
     qDebug() << "app created";
 
-    ctx->font = QFont("Sans");
-    QFontMetrics fm(ctx->font);
+    /* At this point, we should be able to ask for metrics */
+    if (font_ptsize)
+        qe_styles[0].font_size = font_ptsize;
+    get_style(NULL, &default_style, 0);
+    font = qt_open_font(s, default_style.font_style,
+                          default_style.font_size);
+    if (!font) {
+        fprintf(stderr, "Could not open default font\n");
+        exit(1);
+    }
+
+    QFont *qt_font = (QFont *)font->priv_data;
+    QFontMetrics fm(*qt_font);
+
     font_xsize = fm.width("n");
     font_ysize = fm.height();
 
@@ -445,7 +463,7 @@ static void qt_fill_rectangle(QEditScreen *s,
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << style << size;
 
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QEFont *font;
@@ -479,9 +497,9 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
     if (style & QE_STYLE_LINE_THROUGH)
         f->setStrikeOut(true);
 
-    QFontMetrics fm(*f);
+    QFontMetrics fm(*f, &ctx->image);
     font->ascent = fm.ascent();
-    font->descent = fm.descent();
+    font->descent = fm.descent() + fm.leading() + 1;
     font->priv_data = f;
     return font;
 }
@@ -507,7 +525,8 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
 {
     if (font) {
         QFont *f = (QFont *)font->priv_data;
-        QFontMetrics fm(*f);
+        QEUIContext *ctx = (QEUIContext *)s->priv_data;
+        QFontMetrics fm(*f, &ctx->image);
         metrics->font_ascent = fm.ascent();
         metrics->font_descent = fm.descent();
         metrics->width = fm.width(QString::fromUcs4(str, len));
@@ -518,10 +537,10 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
                          int x1, int y, const unsigned int *str, int len,
                          QEColor color)
 {
-    qDebug() << Q_FUNC_INFO;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QFont *f = (QFont *)font->priv_data;
     QString text = QString::fromUcs4(str, len);
+    qDebug() << Q_FUNC_INFO << x1 << y << text;
 
     bool xorMode = (color == QECOLOR_XOR);
 
@@ -534,7 +553,7 @@ static void qt_set_clip(QEditScreen *s,
 {
     qDebug() << Q_FUNC_INFO << x << y << w << h;
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
-    ctx->view->slotSetClip(x, y, x + w - 1, y + h - 1);
+    ctx->view->slotSetClip(x, y, w, h);
 }
 
 static void qt_cursor_at(QEditScreen *s, int x1, int y1,
@@ -596,6 +615,8 @@ static QEDisplay qt_dpy = {
 static CmdOptionDef cmd_options[] = {
     { "no-windows", "nw", NULL, CMD_OPT_BOOL, "force tty terminal usage",
        { int_ptr: &force_tty }},
+    { "font-size", "fs", "ptsize", CMD_OPT_INT | CMD_OPT_ARG, "set default font size",
+      { .int_ptr = &font_ptsize }},
     { NULL, NULL, NULL, 0, NULL, { NULL }},
 };
 
