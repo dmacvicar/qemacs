@@ -216,13 +216,11 @@ void QEView::slotSetCursor(int x, int y, int w, int h)
 
 void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
-    qDebug() << Q_FUNC_INFO << color;
     QPainter painter(&_ctx->image);
     painter.setPen(color);
 
     if (xorMode) {
-        //painter.setCompositionMode(QPainter::CompositionMode_Xor);
-        painter.setCompositionMode(QPainter::RasterOp_NotSource);
+        painter.setCompositionMode(QPainter::CompositionMode_Xor);
     }
 
     painter.drawText(x, y, text);
@@ -235,7 +233,6 @@ void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, 
     QPainter painter(&_ctx->image);
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
-        //painter.setCompositionMode(QPainter::RasterOp_NotSource);
     }
     else
     painter.fillRect(x, y, w, h, color);
@@ -272,8 +269,8 @@ void QEView::paintEvent(QPaintEvent *event)
                       _ctx->image,
                       event->rect().x(),
                       event->rect().y(),
-                      event->rect().x() + event->rect().width() - 1,
-                      event->rect().y() + event->rect().height() - 1);
+                      event->rect().x() + event->rect().width(),
+                      event->rect().y() + event->rect().height());
 
     QImage cursorImg = _ctx->image.copy(_cursor);
     cursorImg.invertPixels();
@@ -371,6 +368,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     get_style(NULL, &default_style, 0);
     font = qt_open_font(s, default_style.font_style,
                           default_style.font_size);
+
     if (!font) {
         fprintf(stderr, "Could not open default font\n");
         exit(1);
@@ -474,16 +472,24 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 
     QFont *f = new QFont();
     f->setPointSize(size);
+    f->setStyleStrategy(QFont::ForceIntegerMetrics);
 
     switch (style & QE_FAMILY_MASK) {
     default:
     case QE_FAMILY_FIXED:
-        f->setStyleHint(QFont::Monospace);
+        qDebug() << Q_FUNC_INFO << "Monospace font requested";
+        f->setFamily("DejaVu Sans Mono");
+        f->setStyleHint(QFont::TypeWriter);
+        f->setFixedPitch(true);
         break;
     case QE_FAMILY_SANS:
+        qDebug() << Q_FUNC_INFO << "Sans font requested";
+        f->setFamily("DejaVu Sans");
         f->setStyleHint(QFont::SansSerif);
         break;
     case QE_FAMILY_SERIF:
+        qDebug() << Q_FUNC_INFO << "Serif font requested";
+        f->setFamily("DejaVu Serif");
         f->setStyleHint(QFont::Serif);
         break;
     }
@@ -499,8 +505,11 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 
     QFontMetrics fm(*f, &ctx->image);
     font->ascent = fm.ascent();
-    font->descent = fm.descent() + fm.leading() + 1;
+    font->descent = fm.descent();
+
     font->priv_data = f;
+    QFontInfo fi(*f);
+    qDebug() << Q_FUNC_INFO << "Resolved" << fi.family() << fi.pointSize() << fi.fixedPitch();
     return font;
 }
 
@@ -526,10 +535,19 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
     if (font) {
         QFont *f = (QFont *)font->priv_data;
         QEUIContext *ctx = (QEUIContext *)s->priv_data;
+
+        QString text = QString::fromUcs4(str, len);
+        QPainter painter(&ctx->image);
+        QRectF picRectF(ctx->image.rect());
+        QRectF rect = painter.boundingRect(picRectF,
+                                           Qt::TextDontClip, text);
+
         QFontMetrics fm(*f, &ctx->image);
         metrics->font_ascent = fm.ascent();
         metrics->font_descent = fm.descent();
-        metrics->width = fm.width(QString::fromUcs4(str, len));
+        metrics->width = rect.width();
+
+        qDebug() << Q_FUNC_INFO << "w: " << rect.width() << text;
     }
 }
 
@@ -540,7 +558,9 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
     QEUIContext *ctx = (QEUIContext *)s->priv_data;
     QFont *f = (QFont *)font->priv_data;
     QString text = QString::fromUcs4(str, len);
-    qDebug() << Q_FUNC_INFO << x1 << y << text;
+
+    QFontInfo fontInfo(*f);
+    //qDebug() << Q_FUNC_INFO << "Draw: " << fontInfo.family() << fontInfo.pointSize();
 
     bool xorMode = (color == QECOLOR_XOR);
 
