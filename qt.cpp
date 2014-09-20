@@ -192,7 +192,7 @@ void QEView::keyPressEvent (QKeyEvent * event)
             return;
         }
 
-        ev.key = event->text().at(0).toAscii();
+        ev.key = event->text().at(0).toLatin1();
         qDebug() << Q_FUNC_INFO << " other key" << event->nativeScanCode();
     }
 
@@ -547,7 +547,7 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
         metrics->font_descent = fm.descent();
         metrics->width = rect.width();
 
-        qDebug() << Q_FUNC_INFO << "w: " << rect.width() << text;
+        //qDebug() << Q_FUNC_INFO << "w: " << rect.width() << text;
     }
 }
 

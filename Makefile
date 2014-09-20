@@ -22,7 +22,7 @@ DEPTH=.
 include $(DEPTH)/config.mak
 
 ifeq ($(CC),gcc)
-  CFLAGS   += -Wall -g -O2 -funsigned-char
+  CFLAGS   += -Wall -g -O2 -funsigned-char -fPIC
   # do not warn about zero-length formats.
   CFLAGS   += -Wno-format-zero-length
   LDFLAGS  := -g
@@ -82,8 +82,8 @@ endif
 
 ifdef CONFIG_QT
   OBJS+= qt.o
-  LIBS+= `pkg-config --libs QtGui QtCore` -lstdc++ -lpthread
-  CFLAGS+= `pkg-config --cflags QtGui QtCore`
+  LIBS+= `pkg-config --libs Qt5Gui Qt5Core Qt5Widgets` -lstdc++ -lpthread
+  CFLAGS+= `pkg-config --cflags Qt5Gui Qt5Core Qt5Widgets`
 endif
 
 ifdef CONFIG_WIN32
@@ -185,7 +185,7 @@ libqhtml: force
 	$(MAKE) -C libqhtml all
 
 qe_g$(EXE): $(OBJS) $(DEP_LIBS)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -DQT_NO_DEBUG_OUTPUT
 
 qe$(EXE): qe_g$(EXE) Makefile
 	rm -f $@
@@ -252,7 +252,7 @@ $(TOBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 	g++ $(DEFINES) -DCONFIG_TINY $(CFLAGS) -Wno-multichar -o $@ -c $<
 
 qt.moc.cpp: qt.cpp $(DEPENDS) Makefile
-	moc -o qt.moc.cpp qt.h
+	moc-qt5 -o qt.moc.cpp qt.h
 
 $(OBJS_DIR)/qt.o: qt.cpp qt.moc.cpp $(DEPENDS) Makefile
 	g++ $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
