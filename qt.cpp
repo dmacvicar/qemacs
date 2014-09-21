@@ -542,9 +542,8 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
         QRectF rect = painter.boundingRect(picRectF,
                                            Qt::TextDontClip, text);
 
-        QFontMetrics fm(*f, &ctx->image);
-        metrics->font_ascent = fm.ascent();
-        metrics->font_descent = fm.descent();
+        metrics->font_ascent = font->ascent;
+        metrics->font_descent = font->descent;
         metrics->width = rect.width();
 
         //qDebug() << Q_FUNC_INFO << "w: " << rect.width() << text;
