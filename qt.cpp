@@ -318,9 +318,9 @@ static void qt_handle_event(void *opaque);
 
 static void _qt_process_events_timer(void *opaque)
 {
-    QApplication *app = (QApplication *)(opaque);
-    app->processEvents();
     qe_add_timer(0, opaque, _qt_process_events_timer);
+    QApplication *app = (QApplication *)(opaque);
+    app->processEvents(QEventLoop::WaitForMoreEvents);
 }
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size);

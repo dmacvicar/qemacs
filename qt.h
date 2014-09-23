@@ -1,6 +1,7 @@
 
 #include <pthread.h>
 
+#include <QMainWindow>
 #include <QAbstractScrollArea>
 #include <QApplication>
 #include <QThread>
