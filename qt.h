@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QThread>
 #include <QPicture>
+#include <QMutex>
 
 #ifndef QEMACS_QT_H
 #define QEMACS_QT_H
@@ -66,6 +67,7 @@ public:
     // qemacs hooks end painting here
     // and we replay on paintEvent
     QImage *image;
+    QMutex imageMutex;
 
     int events_rd;
     int events_wr;
