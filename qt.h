@@ -53,6 +53,8 @@ public:
     // we can't use the constructor before the thread
     // is running and the QApplication created
     QEUIContext();
+    ~QEUIContext();
+
     void init();
 
     QEApplication *app;
@@ -63,7 +65,7 @@ public:
 
     // qemacs hooks end painting here
     // and we replay on paintEvent
-    QImage image;
+    QImage *image;
 
     int events_rd;
     int events_wr;

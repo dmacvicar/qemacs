@@ -203,7 +203,7 @@ void QEView::slotResize(const QSize &size)
 {
     qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
     QImage tmp(size, QImage::Format_ARGB32);
-    _ctx->image.swap(tmp);
+    _ctx->image->swap(tmp);
     resize(size);
     // update all the widget in future repaint
     _clip.setRect(0, 0, size.width(), size.height());
@@ -216,7 +216,7 @@ void QEView::slotSetCursor(int x, int y, int w, int h)
 
 void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
-    QPainter painter(&_ctx->image);
+    QPainter painter(_ctx->image);
     painter.setPen(color);
 
     if (xorMode) {
@@ -230,7 +230,7 @@ void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, 
 void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO;
-    QPainter painter(&_ctx->image);
+    QPainter painter(_ctx->image);
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
     }
@@ -266,13 +266,13 @@ void QEView::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.drawImage(event->rect().x(),
                       event->rect().y(),
-                      _ctx->image,
+                      *_ctx->image,
                       event->rect().x(),
                       event->rect().y(),
                       event->rect().x() + event->rect().width(),
                       event->rect().y() + event->rect().height());
 
-    QImage cursorImg = _ctx->image.copy(_cursor);
+    QImage cursorImg = _ctx->image->copy(_cursor);
     cursorImg.invertPixels();
     painter.drawImage(QPoint(_cursor.x(), _cursor.y()), cursorImg);
 }
@@ -327,9 +327,15 @@ QEUIContext::QEUIContext()
     view = 0L;
 }
 
+QEUIContext::~QEUIContext()
+{
+    delete image;
+}
+
 void QEUIContext::init()
 {
     view = new QEView(this);
+    image = new QImage();
     view->show();
 }
 
@@ -427,7 +433,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     // initialize the double buffer
     QSize size(xsize, ysize);
     QImage tmp(size, QImage::Format_ARGB32);
-    ctx->image.swap(tmp);
+    ctx->image->swap(tmp);
 
     ctx->view->slotResize(size);
     ctx->app->processEvents();
@@ -531,7 +537,7 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
     if (style & QE_STYLE_LINE_THROUGH)
         f->setStrikeOut(true);
 
-    QFontMetrics fm(*f, &ctx->image);
+    QFontMetrics fm(*f, ctx->image);
     font->ascent = fm.ascent();
     font->descent = fm.descent();
 
@@ -565,8 +571,8 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
         QEUIContext *ctx = (QEUIContext *)s->priv_data;
 
         QString text = QString::fromUcs4(str, len);
-        QPainter painter(&ctx->image);
-        QRectF picRectF(ctx->image.rect());
+        QPainter painter(ctx->image);
+        QRectF picRectF(ctx->image->rect());
         QRectF rect = painter.boundingRect(picRectF,
                                            Qt::TextDontClip, text);
 
