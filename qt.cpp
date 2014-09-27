@@ -301,6 +301,19 @@ QEApplication::QEApplication(int &argc, char **argv)
 {
 }
 
+void *qt_thread(void *userdata) {
+    QEUIContext *ctx = (QEUIContext *) userdata;
+    int argc = 0;
+    char *argv[] = {};
+    QEApplication app(argc, argv);
+
+    ctx->app = &app;
+    qDebug() << "app created";
+    ctx->init();
+    //ctx->resize(QSize(xsize, ysize));
+    return (void * ) ctx->app->exec();
+}
+
 static int qt_probe(void)
 {
     if (force_tty)
@@ -309,6 +322,12 @@ static int qt_probe(void)
 }
 
 QEUIContext::QEUIContext()
+{
+    app = 0L;
+    view = 0L;
+}
+
+void QEUIContext::init()
 {
     view = new QEView(this);
     view->show();
@@ -327,14 +346,12 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size);
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
-    int argc = 0;
-    char *argv[] = {};
+    //int argc = 0;
+    //char *argv[] = {};
     QEFont *font;
     QEStyleDef default_style;
 
-    QEApplication *app = new QEApplication(argc, argv);
-
-    int xsize, ysize, font_ysize;
+    //QEApplication *app = new QEApplication(argc, argv);
     QEUIContext *ctx;
     // here init the application
     //ctx = qe_mallocz(WindowState);
@@ -343,6 +360,17 @@ static int qt_init(QEditScreen *s, int w, int h)
     if (ctx == NULL) {
         return -1;
     }
+
+    pthread_create(&ctx->uiThread, NULL, qt_thread, ctx);
+    while (!ctx->app) {
+        qDebug() << "wait for UI thread...";
+    }
+
+    while (!ctx->view) {
+        qDebug() << "wait for view in thread...";
+    }
+
+    int xsize, ysize, font_ysize;
 
     s->priv_data = ctx;
     s->media = CSS_MEDIA_SCREEN;
@@ -359,8 +387,8 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->events_wr  = event_pipe[1];
     set_read_handler(event_pipe[0], qt_handle_event, s);
 
-    ctx->app = app;
-    qDebug() << "app created";
+    //ctx->app = app;
+    //qDebug() << "app created";
 
     /* At this point, we should be able to ask for metrics */
     if (font_ptsize)
@@ -404,7 +432,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->view->slotResize(size);
     ctx->app->processEvents();
 
-    qe_add_timer(0, ctx->app, _qt_process_events_timer);
+    //qe_add_timer(0, ctx->app, _qt_process_events_timer);
     return 2;
 }
 

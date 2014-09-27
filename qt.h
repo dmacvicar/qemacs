@@ -53,8 +53,10 @@ public:
     // we can't use the constructor before the thread
     // is running and the QApplication created
     QEUIContext();
+    void init();
 
     QEApplication *app;
+    pthread_t uiThread;
     QFont font;
     QMainWindow *window;
     QEView *view;
