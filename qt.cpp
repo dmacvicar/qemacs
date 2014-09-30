@@ -347,19 +347,18 @@ static int qt_init(QEditScreen *s, int w, int h)
     if (font_ptsize)
         qe_styles[0].font_size = font_ptsize;
     get_style(NULL, &default_style, 0);
-    font = qt_open_font(s, default_style.font_style,
-                          default_style.font_size);
 
+    QEFont *font = qt_open_font(s, default_style.font_style,
+                                default_style.font_size);
     if (!font) {
         fprintf(stderr, "Could not open default font\n");
         exit(1);
     }
-
     QFont *qt_font = (QFont *)font->priv_data;
     QFontMetrics fm(*qt_font);
-
     font_xsize = fm.width("n");
     font_ysize = fm.height();
+    qt_close_font(s, &font);
 
     if (w == 0)
         w = 80;
