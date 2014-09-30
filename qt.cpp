@@ -44,12 +44,12 @@ static int force_tty = 0;
 static int font_xsize;
 static int font_ptsize;
 
-class QEView;
+class QEQtView;
 class QEWindow;
-class QEApplication;
+class QEQtApplication;
 class QEUIThread;
 
-QEView::QEView(QEUIContext *ctx, QWidget *parent)
+QEQtView::QEQtView(QEQtContext *ctx, QWidget *parent)
     : QWidget(parent),
       _ctx(ctx),
       _repaints(0)
@@ -57,11 +57,11 @@ QEView::QEView(QEUIContext *ctx, QWidget *parent)
 //setAttribute(Qt::WA_OpaquePaintEvent);
 }
 
-QEView::~QEView()
+QEQtView::~QEQtView()
 {
 }
 
-void QEView::keyPressEvent (QKeyEvent * event)
+void QEQtView::keyPressEvent (QKeyEvent * event)
 {
     qDebug() << Q_FUNC_INFO;
 
@@ -199,7 +199,7 @@ void QEView::keyPressEvent (QKeyEvent * event)
     write(_ctx->events_wr, &ev, sizeof(QEEvent));
 }
 
-void QEView::slotResize(const QSize &size)
+void QEQtView::slotResize(const QSize &size)
 {
     qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
     QImage tmp(size, QImage::Format_ARGB32);
@@ -209,12 +209,12 @@ void QEView::slotResize(const QSize &size)
     _clip.setRect(0, 0, size.width(), size.height());
 }
 
-void QEView::slotSetCursor(int x, int y, int w, int h)
+void QEQtView::slotSetCursor(int x, int y, int w, int h)
 {
     _cursor.setRect(x, y, w, h);
 }
 
-void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
+void QEQtView::slotDrawText(const QFont &font, int x, int y, const QString &text, const QColor &color, bool xorMode)
 {
     QPainter painter(&_ctx->image);
     painter.setPen(color);
@@ -227,7 +227,7 @@ void QEView::slotDrawText(const QFont &font, int x, int y, const QString &text, 
     _repaints++;
 }
 
-void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, bool xorMode)
+void QEQtView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, bool xorMode)
 {
     qDebug() << Q_FUNC_INFO;
     QPainter painter(&_ctx->image);
@@ -239,28 +239,19 @@ void QEView::slotFillRectangle(int x, int y, int w, int h, const QColor &color, 
     _repaints++;
 }
 
-void QEView::slotFlush()
+void QEQtView::slotFlush()
 {
     qDebug() << Q_FUNC_INFO << "updates enabled: " << updatesEnabled();
-
-    //Q_ASSERT(!_clip.isEmpty());
-    //qDebug() << Q_FUNC_INFO << rect() << _clip;
-    //Q_ASSERT(!rect().intersected(_clip).isEmpty());
-
-    /// XXX clipping disabled for now
-    //update(_clip);
     update(rect());
-
-    _ctx->app->processEvents();
 }
 
-void QEView::slotSetClip(int x, int y, int w, int h)
+void QEQtView::slotSetClip(int x, int y, int w, int h)
 {
     qDebug() << Q_FUNC_INFO << x << y << w << h;
     _clip.setRect(x, y, w, h);
 }
 
-void QEView::paintEvent(QPaintEvent *event)
+void QEQtView::paintEvent(QPaintEvent *event)
 {
     qDebug() << Q_FUNC_INFO << event->rect();
     QPainter painter(this);
@@ -277,7 +268,7 @@ void QEView::paintEvent(QPaintEvent *event)
     painter.drawImage(QPoint(_cursor.x(), _cursor.y()), cursorImg);
 }
 
-void QEView::closeEvent(QCloseEvent * event)
+void QEQtView::closeEvent(QCloseEvent * event)
 {
     QEEvent ev;
     // cancel pending operation
@@ -296,7 +287,7 @@ void QEView::closeEvent(QCloseEvent * event)
 }
 
 
-QEApplication::QEApplication(int &argc, char **argv)
+QEQtApplication::QEQtApplication(int &argc, char **argv)
         : QApplication(argc, argv)
 {
 }
@@ -308,20 +299,13 @@ static int qt_probe(void)
     return 2;
 }
 
-QEUIContext::QEUIContext()
+QEQtContext::QEQtContext()
 {
-    view = new QEView(this);
+    view = new QEQtView(this);
     view->show();
 }
 
 static void qt_handle_event(void *opaque);
-
-static void _qt_process_events_timer(void *opaque)
-{
-    qe_add_timer(0, opaque, _qt_process_events_timer);
-    QApplication *app = (QApplication *)(opaque);
-    app->processEvents(QEventLoop::WaitForMoreEvents);
-}
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size);
 
@@ -332,13 +316,13 @@ static int qt_init(QEditScreen *s, int w, int h)
     QEFont *font;
     QEStyleDef default_style;
 
-    QEApplication *app = new QEApplication(argc, argv);
+    QEQtApplication *app = new QEQtApplication(argc, argv);
 
     int xsize, ysize, font_ysize;
-    QEUIContext *ctx;
+    QEQtContext *ctx;
     // here init the application
     //ctx = qe_mallocz(WindowState);
-    ctx = new QEUIContext();
+    ctx = new QEQtContext();
 
     if (ctx == NULL) {
         return -1;
@@ -402,9 +386,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->image.swap(tmp);
 
     ctx->view->slotResize(size);
-    ctx->app->processEvents();
 
-    qe_add_timer(0, ctx->app, _qt_process_events_timer);
     return 2;
 }
 
@@ -412,14 +394,14 @@ static void qt_close(QEditScreen *s)
 {
     Q_UNUSED(s);
     qDebug();
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     Q_UNUSED(ctx);
 }
 
 static void qt_flush(QEditScreen *s)
 {
     qDebug() << Q_FUNC_INFO;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     ctx->view->slotFlush();
 
 }
@@ -437,7 +419,7 @@ static void qt_handle_event(void *opaque)
     qDebug() << Q_FUNC_INFO;
 
     QEditScreen *s = (QEditScreen *)opaque;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
 
     QEEvent ev;
     if (read(ctx->events_rd, &ev, sizeof(ev)) < (signed)sizeof(ev))
@@ -450,7 +432,7 @@ static void qt_fill_rectangle(QEditScreen *s,
                               int x1, int y1, int w, int h, QEColor color)
 {
     qDebug() << Q_FUNC_INFO << x1 << y1 << w << h;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
 
     bool xorMode = (color == QECOLOR_XOR);
 
@@ -463,7 +445,7 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
 {
     qDebug() << Q_FUNC_INFO << style << size;
 
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     QEFont *font;
 
     font = qe_mallocz(QEFont);
@@ -534,7 +516,7 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
 {
     if (font) {
         QFont *f = (QFont *)font->priv_data;
-        QEUIContext *ctx = (QEUIContext *)s->priv_data;
+        QEQtContext *ctx = (QEQtContext *)s->priv_data;
 
         QString text = QString::fromUcs4(str, len);
         QPainter painter(&ctx->image);
@@ -554,7 +536,7 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
                          int x1, int y, const unsigned int *str, int len,
                          QEColor color)
 {
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     QFont *f = (QFont *)font->priv_data;
     QString text = QString::fromUcs4(str, len);
 
@@ -571,7 +553,7 @@ static void qt_set_clip(QEditScreen *s,
                         int x, int y, int w, int h)
 {
     qDebug() << Q_FUNC_INFO << x << y << w << h;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     ctx->view->slotSetClip(x, y, w, h);
 }
 
@@ -579,7 +561,7 @@ static void qt_cursor_at(QEditScreen *s, int x1, int y1,
                          int w, int h)
 {
     qDebug() << Q_FUNC_INFO << x1 << y1 << w << h;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
     ctx->view->slotSetCursor(x1, y1, w, h);
 }
 
@@ -602,7 +584,7 @@ static void qt_bmp_free(QEditScreen *s, QEBitmap *b)
 static void qt_full_screen(QEditScreen *s, int full_screen)
 {
     qDebug() << Q_FUNC_INFO;
-    QEUIContext *ctx = (QEUIContext *)s->priv_data;
+    QEQtContext *ctx = (QEQtContext *)s->priv_data;
 }
 
 static QEDisplay qt_dpy = {

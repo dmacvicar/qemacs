@@ -10,14 +10,14 @@
 #ifndef QEMACS_QT_H
 #define QEMACS_QT_H
 
-class QEUIContext;
+class QEQtContext;
 
-class QEView : public QWidget
+class QEQtView : public QWidget
 {
     Q_OBJECT
 public:
-    QEView(QEUIContext *ctx, QWidget *parent = 0);
-    ~QEView();
+    QEQtView(QEQtContext *ctx, QWidget *parent = 0);
+    ~QEQtView();
     void keyPressEvent(QKeyEvent *);
 protected:
     virtual void paintEvent(QPaintEvent *);
@@ -30,35 +30,34 @@ public slots:
     void slotSetClip(int, int, int, int);
     void slotSetCursor(int, int, int, int);
 private:
-    QEUIContext *_ctx;
+    QEQtContext *_ctx;
     // when we draw in the double buffer, we increase this
     int _repaints;
     QRect _clip;
     QRect _cursor;
 };
 
-class QEApplication : public QApplication
+class QEQtApplication : public QApplication
 {
     Q_OBJECT
 public:
-    QEApplication(int &argc, char **argv);
+    QEQtApplication(int &argc, char **argv);
 private:
 
 };
 
-// this cant be a QObject. Told you.
-class QEUIContext
+// opaque pointer where Qt keeps its application and
+// views
+class QEQtContext
 {
 public:
-    // we can't use the constructor before the thread
-    // is running and the QApplication created
-    QEUIContext();
+    QEQtContext();
 
-    QEApplication *app;
+    QEQtApplication *app;
+    QEQtView *view;
+
     QFont font;
     QMainWindow *window;
-    QEView *view;
-
     // qemacs hooks end painting here
     // and we replay on paintEvent
     QImage image;
