@@ -313,22 +313,20 @@ QEQtContext::QEQtContext()
 static void qt_handle_event(void *opaque);
 
 static QEFont *qt_open_font(QEditScreen *s, int style, int size);
+static void qt_close_font(QEditScreen *s, QEFont **fontp);
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
-    QEFont *font;
     QEStyleDef default_style;
     int xsize, ysize, font_ysize;
 
     QEQtContext *ctx;
-
     ctx = new QEQtContext();
-
     if (ctx == NULL) {
         return -1;
     }
-
     s->priv_data = ctx;
+
     s->media = CSS_MEDIA_SCREEN;
     s->bitmap_format = QEBITMAP_FORMAT_RGBA32;
 
