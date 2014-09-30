@@ -301,6 +301,11 @@ static int qt_probe(void)
 
 QEQtContext::QEQtContext()
 {
+    int argc = 0;
+    char *argv[] = {};
+    app = new QEQtApplication(argc, argv);
+    qDebug() << "app created";
+
     view = new QEQtView(this);
     view->show();
 }
@@ -311,17 +316,12 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size);
 
 static int qt_init(QEditScreen *s, int w, int h)
 {
-    int argc = 0;
-    char *argv[] = {};
     QEFont *font;
     QEStyleDef default_style;
-
-    QEQtApplication *app = new QEQtApplication(argc, argv);
-
     int xsize, ysize, font_ysize;
+
     QEQtContext *ctx;
-    // here init the application
-    //ctx = qe_mallocz(WindowState);
+
     ctx = new QEQtContext();
 
     if (ctx == NULL) {
@@ -342,9 +342,6 @@ static int qt_init(QEditScreen *s, int w, int h)
     ctx->events_rd = event_pipe[0];
     ctx->events_wr  = event_pipe[1];
     set_read_handler(event_pipe[0], qt_handle_event, s);
-
-    ctx->app = app;
-    qDebug() << "app created";
 
     /* At this point, we should be able to ask for metrics */
     if (font_ptsize)
