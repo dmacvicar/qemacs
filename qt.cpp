@@ -222,7 +222,7 @@ void QEQtView::slotDrawText(const QFont &font, int x, int y, const QString &text
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
     }
-
+    painter.setFont(font);
     painter.drawText(x, y, text);
     _repaints++;
 }
@@ -446,29 +446,29 @@ static QEFont *qt_open_font(QEditScreen *s, int style, int size)
     if (!font)
         return NULL;
 
-    QFont *f = new QFont();
-    f->setPointSize(size);
-    f->setStyleStrategy(QFont::ForceIntegerMetrics);
+    QFont *f;
 
     switch (style & QE_FAMILY_MASK) {
-    default:
-    case QE_FAMILY_FIXED:
-        qDebug() << Q_FUNC_INFO << "Monospace font requested";
-        f->setFamily("DejaVu Sans Mono");
-        f->setStyleHint(QFont::TypeWriter);
-        f->setFixedPitch(true);
-        break;
     case QE_FAMILY_SANS:
         qDebug() << Q_FUNC_INFO << "Sans font requested";
-        f->setFamily("DejaVu Sans");
+        f = new QFont();
         f->setStyleHint(QFont::SansSerif);
         break;
     case QE_FAMILY_SERIF:
         qDebug() << Q_FUNC_INFO << "Serif font requested";
-        f->setFamily("DejaVu Serif");
+        f = new QFont();
         f->setStyleHint(QFont::Serif);
         break;
+    case QE_FAMILY_FIXED:
+    default:
+        qDebug() << Q_FUNC_INFO << "Monospace font requested";
+        f = new QFont("Consolas");
+        f->setStyleHint(QFont::Monospace);
+        f->setFixedPitch(true);
+        break;
     }
+    f->setStyleStrategy(QFont::ForceIntegerMetrics);
+    f->setPointSize(size);
 
     if (style & QE_STYLE_BOLD)
         f->setBold(true);
@@ -513,16 +513,11 @@ static void qt_text_metrics(QEditScreen *s, QEFont *font,
         QEQtContext *ctx = (QEQtContext *)s->priv_data;
 
         QString text = QString::fromUcs4(str, len);
-        QPainter painter(&ctx->image);
-        QRectF picRectF(ctx->image.rect());
-        QRectF rect = painter.boundingRect(picRectF,
-                                           Qt::TextDontClip, text);
 
+        QFontMetrics fm(*f, &ctx->image);
         metrics->font_ascent = font->ascent;
         metrics->font_descent = font->descent;
-        metrics->width = rect.width();
-
-        //qDebug() << Q_FUNC_INFO << "w: " << rect.width() << text;
+        metrics->width = fm.width(text);
     }
 }
 
