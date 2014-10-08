@@ -94,9 +94,13 @@ ifdef CONFIG_WIN32
   LIBS+= -lmsvcrt -lgdi32 -lwsock32
   TLIBS+= -lmsvcrt -lgdi32 -lwsock32
 else
-#  OBJS+= unix.o tty.o
-  OBJS+= eventloop_qt.o tty.o
-  TOBJS+= unix.o tty.o
+  # qt implements the event loop
+  # in qt.cpp
+  ifndef CONFIG_QT
+    OBJS+= unix.o
+  endif
+  OBJS+= tty.o
+  TOBJS+= tty.o unix.o
   LIBS+= $(EXTRALIBS)
 endif
 
@@ -254,12 +258,6 @@ $(TOBJS_DIR)/haiku.o: haiku.cpp $(DEPENDS) Makefile
 
 qt.moc.cpp: qt.cpp $(DEPENDS) Makefile
 	moc-qt5 -o qt.moc.cpp qt.h
-
-$(OBJS_DIR)/eventloop_qt.o: eventloop_qt.cpp $(DEPENDS) Makefile
-	g++ -std=c++11 $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
-
-$(TOBJS_DIR)/eventloop_qt.o: eventloop_qt.cpp $(DEPENDS) Makefile
-	g++ -std=c++11 $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
 
 $(OBJS_DIR)/qt.o: qt.cpp qt.moc.cpp $(DEPENDS) Makefile
 	g++ -std=c++11 -DQT_NO_DEBUG_OUTPUT $(DEFINES) $(CFLAGS) -Wno-multichar -o $@ -c $<
