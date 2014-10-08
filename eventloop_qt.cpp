@@ -25,62 +25,52 @@
 #include <QTimer>
 #include <QSocketNotifier>
 #include <QList>
+#include <QMap>
 
 extern "C" {
 #include "qe.h"
 }
 
-typedef struct URLHandler {
-    void *read_opaque;
-    void (*read_cb)(void *opaque);
-    void *write_opaque;
-    void (*write_cb)(void *opaque);
-} URLHandler;
-
-typedef struct PidHandler {
-    struct PidHandler *next, *prev;
-    int pid;
-    void (*cb)(void *opaque, int status);
-    void *opaque;
-} PidHandler;
-
-typedef struct BottomHalfEntry {
-    struct BottomHalfEntry *next, *prev;
-    void (*cb)(void *opaque);
-    void *opaque;
-} BottomHalfEntry;
-
 struct QETimer {
     QTimer *timer;
-    struct QETimer *next;
 };
 
-static fd_set url_rfds, url_wfds;
-static int url_fdmax;
-static URLHandler url_handlers[256];
-static int url_exit_request;
-static LIST_HEAD(pid_handlers);
-static LIST_HEAD(bottom_halves);
-static QETimer *first_timer;
-
-static QList<QETimer *> gTimers;
-static QList<QSocketNotifier *> gSocketNotifiers;
-
-static void set_handler(QSocketNotifier::Type type, int fd, void (*cb)(void *opaque), void *opaque)
-{
-    QSocketNotifier *notifier = new QSocketNotifier(fd, type);
-        QObject::connect(notifier, &QSocketNotifier::activated,
-                     std::bind(cb, opaque) );
-}
+static QMap<int, QSocketNotifier *> gReadNotifiers;
+static QMap<int, QSocketNotifier *> gWriteNotifiers;
 
 void set_read_handler(int fd, void (*cb)(void *opaque), void *opaque)
 {
-    set_handler(QSocketNotifier::Read, fd, cb, opaque);
+    if (gReadNotifiers.contains(fd)) {
+        QSocketNotifier *notifier = gReadNotifiers.take(fd);
+        notifier->setEnabled(false);
+        delete notifier;
+    }
+
+    if (cb == nullptr) {
+        return;
+    }
+
+    QSocketNotifier *notifier = new QSocketNotifier(fd, QSocketNotifier::Read);
+    QObject::connect(notifier, &QSocketNotifier::activated,
+                     std::bind(cb, opaque) );
+    gReadNotifiers.insert(fd, notifier);
 }
 
 void set_write_handler(int fd, void (*cb)(void *opaque), void *opaque)
 {
-    set_handler(QSocketNotifier::Write, fd, cb, opaque);
+    if (gWriteNotifiers.contains(fd)) {
+        QSocketNotifier *notifier = gWriteNotifiers.take(fd);
+        notifier->setEnabled(false);
+        delete notifier;
+    }
+
+    if (cb == nullptr) {
+        return;
+    }
+
+    QSocketNotifier *notifier = new QSocketNotifier(fd, QSocketNotifier::Write);
+    QObject::connect(notifier, &QSocketNotifier::activated,
+                     std::bind(cb, opaque) );
 }
 
 /* register a callback which is called when process 'pid'
@@ -154,4 +144,11 @@ void url_exit(void)
 {
     QEventLoop loop;
     loop.exit();
+
+    foreach (QSocketNotifier *notifier, gReadNotifiers) {
+        delete notifier;
+    }
+    foreach (QSocketNotifier *notifier, gWriteNotifiers) {
+        delete notifier;
+    }
 }
