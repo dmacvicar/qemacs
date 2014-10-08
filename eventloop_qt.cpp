@@ -106,6 +106,15 @@ void unregister_bottom_half(void (*cb)(void *opaque), void *opaque)
 {
 }
 
+static void _qt_timer_callback(QETimer *ti, void *opaque, void (*cb)(void *opaque))
+{
+    // delete the Qt timer
+    delete ti->timer;
+    qe_free(&ti);
+    // execute the callback
+    cb(opaque);
+}
+
 QETimer *qe_add_timer(int delay, void *opaque, void (*cb)(void *opaque))
 {
     QETimer *ti;
@@ -115,33 +124,21 @@ QETimer *qe_add_timer(int delay, void *opaque, void (*cb)(void *opaque))
 
     QTimer *timer = new QTimer();
     QObject::connect(timer, &QTimer::timeout,
-                    std::bind(cb, opaque) );
+                     std::bind(_qt_timer_callback, ti, opaque, cb));
 
     timer->setSingleShot(true);
     timer->start(delay);
     ti->timer = timer;
 
-    ti->next = first_timer;
-    first_timer = ti;
     return ti;
 }
 
 void qe_kill_timer(QETimer **tip)
 {
     if (*tip) {
-        QETimer **pt;
-
-        /* remove timer from list of active timers and free it */
-        for (pt = &first_timer; *pt != NULL; pt = &(*pt)->next) {
-            if (*pt == (*tip)) {
-                *pt = (*tip)->next;
-                delete (*tip)->timer;
-                qe_free(tip);
-                return;
-            }
-        }
-        /* timer not found, was probably alread freed */
-        *tip = NULL;
+        (*tip)->timer->stop();
+        delete (*tip)->timer;
+        qe_free(tip);
     }
 }
 
