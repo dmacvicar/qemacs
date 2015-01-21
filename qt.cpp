@@ -200,7 +200,7 @@ QEQtView::~QEQtView()
 
 void QEQtView::keyPressEvent (QKeyEvent *event)
 {
-    qDebug() << Q_FUNC_INFO;
+    qDebug() << Q_FUNC_INFO << QKeySequence(event->key()).toString();
 
     QEKeyEvent ev;
     ev.type = QE_KEY_EVENT;
