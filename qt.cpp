@@ -198,7 +198,7 @@ QEQtView::~QEQtView()
 {
 }
 
-void QEQtView::keyPressEvent (QKeyEvent * event)
+void QEQtView::keyPressEvent (QKeyEvent *event)
 {
     qDebug() << Q_FUNC_INFO;
 
