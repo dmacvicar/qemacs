@@ -209,10 +209,6 @@ void QEQtView::keyPressEvent (QKeyEvent * event)
     bool meta = event->modifiers() & Qt::AltModifier;
 
     switch (event->key()) {
-    case Qt::Key_Control:
-    case Qt::Key_Meta:
-      ev.key = KEY_DEFAULT;
-      break;
     // in the same order as qe.h
     case Qt::Key_Tab:
         ev.key = shift ? KEY_SHIFT_TAB : KEY_TAB;
@@ -322,13 +318,26 @@ void QEQtView::keyPressEvent (QKeyEvent * event)
    case Qt::Key_F20:
         ev.key = KEY_F20;
         break;
+    case Qt::Key_Control:
+    case Qt::Key_Meta:
+    case Qt::Key_Alt:
+    case Qt::Key_AltGr:
     default:
         if (event->text().isEmpty()) {
             qDebug() << Q_FUNC_INFO << "empty key" << event->nativeScanCode();
             return;
         }
 
-        ev.key = event->text().at(0).toLatin1();
+        int key = event->text().at(0).toLatin1();
+        if (ctrl) {
+            ev.key = KEY_CTRL(key);
+        }
+        else if (meta) {
+            ev.key = KEY_META(' ') + key - ' ';
+        }
+        else {
+            ev.key = key;
+        }
         qDebug() << Q_FUNC_INFO << " other key" << event->nativeScanCode();
     }
 
