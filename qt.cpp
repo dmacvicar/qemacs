@@ -204,9 +204,9 @@ void QEQtView::keyPressEvent (QKeyEvent * event)
     QEKeyEvent ev;
     ev.type = QE_KEY_EVENT;
 
-    bool ctrl = event->modifiers() && Qt::ControlModifier;
-    bool shift = event->modifiers() && Qt::ShiftModifier;
-    bool meta = event->modifiers() && Qt::MetaModifier;
+    bool ctrl = event->modifiers() & Qt::ControlModifier;
+    bool shift = event->modifiers() & Qt::ShiftModifier;
+    bool meta = event->modifiers() & Qt::AltModifier;
 
     switch (event->key()) {
     case Qt::Key_Control:
