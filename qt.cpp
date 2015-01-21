@@ -170,6 +170,7 @@ void url_exit(void)
     foreach (QSocketNotifier *notifier, gWriteNotifiers) {
         delete notifier;
     }
+    QApplication::quit();
 }
 
 //} // extern "C"
@@ -413,22 +414,26 @@ void QEQtView::paintEvent(QPaintEvent *event)
     painter.drawImage(QPoint(_cursor.x(), _cursor.y()), cursorImg);
 }
 
-void QEQtView::closeEvent(QCloseEvent * event)
+void QEQtView::closeEvent(QCloseEvent *event)
 {
-    QEEvent ev;
+    qWarning() << Q_FUNC_INFO;
+    QEEvent ev1, *ev = &ev1;
+
     // cancel pending operation
-    ev.key_event.type = QE_KEY_EVENT;
-    ev.key_event.key = KEY_CTRL('g');
-    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+    ev->key_event.type = QE_KEY_EVENT;
+    ev->key_event.key = KEY_CTRL('g');
+    qe_handle_event(ev);
 
     // simulate C-x C-c
-    ev.key_event.type = QE_KEY_EVENT;
-    ev.key_event.key = KEY_CTRL('x');
-    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+    ev->key_event.type = QE_KEY_EVENT;
+    ev->key_event.key = KEY_CTRL('x');
+    qe_handle_event(ev);
 
-    ev.key_event.type = QE_KEY_EVENT;
-    ev.key_event.key = KEY_CTRL('c');
-    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+    ev->key_event.type = QE_KEY_EVENT;
+    ev->key_event.key = KEY_CTRL('c');
+    qe_handle_event(ev);
+
+    event->accept();
 }
 
 
@@ -531,10 +536,9 @@ static int qt_init(QEditScreen *s, int w, int h)
 
 static void qt_close(QEditScreen *s)
 {
-    Q_UNUSED(s);
-    qDebug();
+    qDebug() << Q_FUNC_INFO;
     QEQtContext *ctx = (QEQtContext *)s->priv_data;
-    Q_UNUSED(ctx);
+    delete ctx;
 }
 
 static void qt_flush(QEditScreen *s)
