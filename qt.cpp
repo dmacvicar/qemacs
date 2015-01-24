@@ -438,8 +438,8 @@ void QEQtView::closeEvent(QCloseEvent *event)
 }
 
 
-QEQtApplication::QEQtApplication(int &argc, char **argv)
-        : QApplication(argc, argv)
+QEQtApplication::QEQtApplication()
+        : QApplication(qe_state.argc, qe_state.argv)
 {
 }
 
@@ -452,9 +452,7 @@ static int qt_probe(void)
 
 QEQtContext::QEQtContext()
 {
-    int argc = 0;
-    char *argv[] = {};
-    app = new QEQtApplication(argc, argv);
+    app = new QEQtApplication();
     qDebug() << "app created";
 
     view = new QEQtView(this);

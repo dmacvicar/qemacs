@@ -41,7 +41,7 @@ class QEQtApplication : public QApplication
 {
     Q_OBJECT
 public:
-    QEQtApplication(int &argc, char **argv);
+    QEQtApplication();
 private:
 
 };
