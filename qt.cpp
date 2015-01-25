@@ -501,7 +501,24 @@ void QEQtView::mouseEvent(QMouseEvent *event)
     event->accept();
 }
 
+void QEQtView::wheelEvent(QWheelEvent *event)
+{
+    qCritical() << Q_FUNC_INFO;
+    QEEvent ev;
 
+    ev.button_event.type = QE_BUTTON_PRESS_EVENT;
+    if (event->delta() > 0) {
+        ev.button_event.button = QE_WHEEL_UP;
+    }
+    else {
+        ev.button_event.button = QE_WHEEL_DOWN;
+    }
+    ev.button_event.x = 0;
+    ev.button_event.y = 0;
+
+    qe_handle_event(&ev);
+    event->accept();
+}
 
 QEQtApplication::QEQtApplication()
         : QApplication(qe_state.argc, qe_state.argv)
