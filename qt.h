@@ -23,6 +23,12 @@ protected:
     virtual void paintEvent(QPaintEvent *);
     virtual void closeEvent (QCloseEvent *);
     virtual void resizeEvent(QResizeEvent *);
+    virtual void mousePressEvent(QMouseEvent *);
+    virtual void mouseReleaseEvent(QMouseEvent *);
+    virtual void mouseMoveEvent(QMouseEvent *);
+
+    void mouseEvent(QMouseEvent *);
+
 public slots:
     void slotDrawText(const QFont &, int, int, const QString &, const QColor &, bool);
     void slotFillRectangle(int, int, int, int, const QColor &, bool);

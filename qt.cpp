@@ -449,6 +449,60 @@ void QEQtView::resizeEvent(QResizeEvent *event)
     write(_ctx->events_wr, &ev, sizeof(QEEvent));
 }
 
+void QEQtView::mousePressEvent(QMouseEvent *event)
+{
+    mouseEvent(event);
+}
+
+void QEQtView::mouseReleaseEvent(QMouseEvent *event)
+{
+    mouseEvent(event);
+}
+
+void QEQtView::mouseMoveEvent(QMouseEvent *event)
+{
+    mouseEvent(event);
+}
+
+void QEQtView::mouseEvent(QMouseEvent *event)
+{
+    QEEvent ev;
+
+    switch (event->type()) {
+    case QEvent::MouseButtonPress:
+        ev.button_event.type = QE_BUTTON_PRESS_EVENT;
+        break;
+    case QEvent::MouseButtonRelease:
+        ev.button_event.type = QE_BUTTON_RELEASE_EVENT;
+        break;
+    case QEvent::MouseMove:
+        ev.button_event.type = QE_MOTION_EVENT;
+        break;
+    default:
+        return;
+    }
+
+    ev.button_event.x = (int) event->x();
+    ev.button_event.y = (int) event->y();
+
+    switch (event->buttons()) {
+    case Qt::LeftButton:
+        ev.button_event.button = QE_BUTTON_LEFT;
+        break;
+    case Qt::MiddleButton:
+        ev.button_event.button = QE_BUTTON_MIDDLE;
+        break;
+    case Qt::RightButton:
+        ev.button_event.button = QE_BUTTON_RIGHT;
+        break;
+    }
+
+    qe_handle_event(&ev);
+    event->accept();
+}
+
+
+
 QEQtApplication::QEQtApplication()
         : QApplication(qe_state.argc, qe_state.argv)
 {
