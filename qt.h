@@ -18,8 +18,8 @@ class QEQtView : public QWidget
 public:
     QEQtView(QEQtContext *ctx, QWidget *parent = 0);
     ~QEQtView();
-    void keyPressEvent(QKeyEvent *);
 protected:
+    virtual void keyPressEvent(QKeyEvent *);
     virtual void paintEvent(QPaintEvent *);
     virtual void closeEvent (QCloseEvent *);
     virtual void resizeEvent(QResizeEvent *);
