@@ -503,7 +503,6 @@ void QEQtView::mouseEvent(QMouseEvent *event)
 
 void QEQtView::wheelEvent(QWheelEvent *event)
 {
-    qCritical() << Q_FUNC_INFO;
     QEEvent ev;
 
     ev.button_event.type = QE_BUTTON_PRESS_EVENT;
