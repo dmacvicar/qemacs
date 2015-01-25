@@ -22,10 +22,11 @@ public:
 protected:
     virtual void paintEvent(QPaintEvent *);
     virtual void closeEvent (QCloseEvent *);
+    virtual void resizeEvent(QResizeEvent *);
 public slots:
     void slotDrawText(const QFont &, int, int, const QString &, const QColor &, bool);
     void slotFillRectangle(int, int, int, int, const QColor &, bool);
-    void slotResize(const QSize &);
+    void slotResizeDoubleBuffer(const QSize &);
     void slotFlush();
     void slotSetClip(int, int, int, int);
     void slotSetCursor(int, int, int, int);

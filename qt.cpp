@@ -346,12 +346,11 @@ void QEQtView::keyPressEvent (QKeyEvent *event)
     write(_ctx->events_wr, &ev, sizeof(QEEvent));
 }
 
-void QEQtView::slotResize(const QSize &size)
+void QEQtView::slotResizeDoubleBuffer(const QSize &size)
 {
     qDebug() << Q_FUNC_INFO << updatesEnabled()<< size;
     QImage tmp(size, QImage::Format_ARGB32);
     _ctx->image.swap(tmp);
-    resize(size);
     // update all the widget in future repaint
     _clip.setRect(0, 0, size.width(), size.height());
 }
@@ -437,6 +436,18 @@ void QEQtView::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+void QEQtView::resizeEvent(QResizeEvent *event)
+{
+    qDebug() << Q_FUNC_INFO;
+    qe_state.screen->width = event->size().width();
+    qe_state.screen->height = event->size().height();
+
+    slotResizeDoubleBuffer(event->size());
+
+    QEEvent ev;
+    ev.expose_event.type = QE_EXPOSE_EVENT;
+    write(_ctx->events_wr, &ev, sizeof(QEEvent));
+}
 
 QEQtApplication::QEQtApplication()
         : QApplication(qe_state.argc, qe_state.argv)
@@ -523,12 +534,7 @@ static int qt_init(QEditScreen *s, int w, int h)
     s->clip_x2 = s->width;
     s->clip_y2 = s->height;
 
-    // initialize the double buffer
-    QSize size(xsize, ysize);
-    QImage tmp(size, QImage::Format_ARGB32);
-    ctx->image.swap(tmp);
-
-    ctx->view->slotResize(size);
+    ctx->view->resize(xsize, ysize);
 
     return 2;
 }
