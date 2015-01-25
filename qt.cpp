@@ -417,21 +417,21 @@ void QEQtView::paintEvent(QPaintEvent *event)
 void QEQtView::closeEvent(QCloseEvent *event)
 {
     qWarning() << Q_FUNC_INFO;
-    QEEvent ev1, *ev = &ev1;
+    QEEvent ev;
 
     // cancel pending operation
-    ev->key_event.type = QE_KEY_EVENT;
-    ev->key_event.key = KEY_CTRL('g');
-    qe_handle_event(ev);
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('g');
+    qe_handle_event(&ev);
 
     // simulate C-x C-c
-    ev->key_event.type = QE_KEY_EVENT;
-    ev->key_event.key = KEY_CTRL('x');
-    qe_handle_event(ev);
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('x');
+    qe_handle_event(&ev);
 
-    ev->key_event.type = QE_KEY_EVENT;
-    ev->key_event.key = KEY_CTRL('c');
-    qe_handle_event(ev);
+    ev.key_event.type = QE_KEY_EVENT;
+    ev.key_event.key = KEY_CTRL('c');
+    qe_handle_event(&ev);
 
     event->accept();
 }
