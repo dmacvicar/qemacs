@@ -79,7 +79,9 @@ if(CONFIG_WIN32)
   set(qemacs_common_SRCS ${qemacs_common_SRCS} unix.c)
 else(CONFIG_WIN32)
   set(qemacs_common_SRCS ${qemacs_common_SRCS} tty.c)
-  set(qemacs_common_SRCS ${qemacs_common_SRCS} unix.c)
+  if (NOT CONFIG_QT)
+     set(qemacs_common_SRCS ${qemacs_common_SRCS} unix.c)
+  endif(NOT CONFIG_QT)
 endif(CONFIG_WIN32)
 
 set(qemacs_SRCS
@@ -147,7 +149,12 @@ if(CONFIG_QT)
     ${Qt5Core_DEFINITIONS}
     ${Qt5Gui_DEFINITIONS}
   )
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DQT_NO_DEBUG)
+    add_definitions(-DQT_NO_DEBUG_OUTPUT)
+  endif(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_CXX_FLAGS "${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   set(qemacs_SRCS ${qemacs_SRCS} qt.cpp)
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -241,12 +248,14 @@ endmacro(generate_module_init_calls)
   set(qemacs_tiny_SRCS ${qemacs_tiny_SRCS} qeend.c)
 #endif(CONFIG_INIT_CALLS)
 
+message(INFO ${qemacs_SRCS})
 add_executable(qe ${qemacs_SRCS})
 add_dependencies(qe allmodules)
 target_link_libraries(qe dl)
 
 if(CONFIG_QT)
   target_link_libraries(qe ${Qt5Widgets_LIBRARIES})
+#  target_link_libraries(qe Qt5::Widgets)
 endif(CONFIG_QT)
 
 if(CONFIG_X11)
@@ -263,7 +272,7 @@ if(CONFIG_HTML)
   target_link_libraries(qe qhtml)
 endif(CONFIG_HTML)
 
-add_executable(tqe ${qemacs_tiny_SRCS})
+add_executable(tqe ${qemacs_tiny_SRCS} unix.c)
 add_dependencies(tqe basemodules)
 set_property(TARGET tqe APPEND PROPERTY COMPILE_DEFINITIONS CONFIG_TINY=1)
 

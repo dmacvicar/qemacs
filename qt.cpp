@@ -844,4 +844,3 @@ static int qt_init(void)
 
 qe_module_init(qt_init);
 
-#include "qt.moc.cpp"
