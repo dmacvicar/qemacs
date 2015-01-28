@@ -368,6 +368,7 @@ void QEQtView::slotDrawText(const QFont &font, int x, int y, const QString &text
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
     }
+    painter.setClipRegion(_clip);
     painter.setFont(font);
     painter.drawText(x, y, text);
     _repaints++;
@@ -380,7 +381,8 @@ void QEQtView::slotFillRectangle(int x, int y, int w, int h, const QColor &color
     if (xorMode) {
         painter.setCompositionMode(QPainter::CompositionMode_Xor);
     }
-    else
+
+    painter.setClipRegion(_clip);
     painter.fillRect(x, y, w, h, color);
     _repaints++;
 }
