@@ -395,7 +395,7 @@ void QEQtView::slotFlush()
 
 void QEQtView::slotSetClip(int x, int y, int w, int h)
 {
-    qDebug() << Q_FUNC_INFO << x << y << w << h;
+    qCritical() << Q_FUNC_INFO << x << y << w << h;
     _clip.setRect(x, y, w, h);
 }
 
@@ -756,12 +756,12 @@ static void qt_draw_text(QEditScreen *s, QEFont *font,
     QString text = QString::fromUcs4(str, len);
 
     QFontInfo fontInfo(*f);
-    //qDebug() << Q_FUNC_INFO << "Draw: " << fontInfo.family() << fontInfo.pointSize();
 
     bool xorMode = (color == QECOLOR_XOR);
+    qCritical() << "draw_text" << xorMode << x1 << y << text << len  << fontInfo.family() << fontInfo.pointSize();
 
     ctx->view->slotDrawText(*f, x1, y, text,
-                            QColor::fromRgba(color), xorMode);
+                            QColor::fromRgba(color), false);
 }
 
 static void qt_set_clip(QEditScreen *s,
