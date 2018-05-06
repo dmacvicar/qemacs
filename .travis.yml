@@ -6,7 +6,6 @@ os:
 
 compiler:
   - gcc
-  - g++
   - clang
 
 install:
