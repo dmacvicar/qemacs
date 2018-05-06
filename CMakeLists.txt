@@ -50,6 +50,7 @@ option(CONFIG_X11 "X11" CONFIG_X11)
 option(CONFIG_NETWORK "Network" CONFIG_NETWORK)
 option(CONFIG_QT "Qt" CONFIG_QT)
 option(CONFIG_PLUGINS "Plugins" CONFIG_PLUGINS)
+option(CONFIG_TINY "Tiny" CONFIG_TINY)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -277,7 +278,8 @@ if(CONFIG_HTML)
   target_link_libraries(qe qhtml)
 endif(CONFIG_HTML)
 
+if(CONFIG_TINY)
 add_executable(tqe ${qemacs_tiny_SRCS} unix.c)
 add_dependencies(tqe basemodules)
 set_property(TARGET tqe APPEND PROPERTY COMPILE_DEFINITIONS CONFIG_TINY=1)
-
+endif(CONFIG_TINY)
