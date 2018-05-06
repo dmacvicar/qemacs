@@ -1,0 +1,33 @@
+#cmakedefine prefix
+#cmakedefine CMAKE_INSTALL_PREFIX
+datadir=/usr/local/share
+mandir=/usr/local/man
+MAKE=make
+CC=gcc
+GCC_MAJOR=3
+HOST_CC=gcc
+AR=ar
+STRIP=strip -s -R .comment -R .note
+INSTALL=install
+CFLAGS=-O2
+LDFLAGS=
+EXE=
+TARGET_ARCH_X86_64=yes
+CONFIG_HAS_TYPEOF=yes
+CONFIG_UNLOCKIO=yes
+CONFIG_PTSNAME=yes
+DLLIBS=-ldl
+EXTRALIBS=-lm
+VERSION=0.4.0dev
+#cmakedefine01 CONFIG_NETWORK
+#cmakedefine01 CONFIG_QT
+#cmakedefine01 CONFIG_X11
+#cmakedefine01 CONFIG_XV
+#cmakedefine01 CONFIG_HTML
+#cmakedefine01 CONFIG_DLL
+#cmakedefine01 CONFIG_INIT_CALLS
+#cmakedefine01 CONFIG_PNG_OUTPUT
+#cmakedefine01 CONFIG_MMAP
+#cmakedefine01 CONFIG_ALL_MODES
+#cmakedefine01 CONFIG_UNICODE_JOIN
+SRC_PATH=/space/git/dmacvicar.github.com/qemacs

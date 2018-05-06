@@ -44,8 +44,9 @@ endif()
 option(CONFIG_WIN32 "Win32 driver" CONFIG_WIN32)
 option(CONFIG_CYGWIN "Cygwin" CONFIG_CYGWIN)
 option(CONFIG_X11 "X11" CONFIG_X11)
+option(CONFIG_NETWORK "Network" CONFIG_NETWORK)
 option(CONFIG_QT "Qt" CONFIG_QT)
-option(CONFIG_QT "Plugins" CONFIG_PLUGINS)
+option(CONFIG_PLUGINS "Plugins" CONFIG_PLUGINS)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
