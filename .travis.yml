@@ -1,5 +1,7 @@
 language: cpp
-
+matrix:
+  allow_failures:
+    - os: osx
 os:
   - linux
   - osx
