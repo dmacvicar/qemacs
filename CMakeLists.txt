@@ -59,6 +59,7 @@ if(CONFIG_X11)
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
+include_directories(${CMAKE_BINARY_DIR})
 add_definitions(-DHAVE_QE_CONFIG_H)
 add_definitions(-DCONFIG_INIT_CALLS)
 
