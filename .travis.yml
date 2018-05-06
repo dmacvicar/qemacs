@@ -11,12 +11,12 @@ compiler:
 
 install:
   - cmake --version
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; brew install qt; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update; sudo apt-get install libqt4-dev qt4-qmake; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; brew install qt5; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update; sudo apt-get install libqt5-dev qt5-qmake; fi
 
 script:
   - git submodule update --init
   - mkdir _build && cd _build
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then cmake .. -DCMAKE_PREFIX_PATH=$(brew --prefix qt); fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then cmake .. -DCMAKE_PREFIX_PATH=$(brew --prefix qt5); fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cmake .. ; fi
   - make
