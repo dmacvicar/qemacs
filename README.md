@@ -11,10 +11,10 @@ Since 2004, it was maintained by Charlie Gordon until early 2014.
 This fork has educational purposes and the following goals in addition
 to general refactorings and cleanups:
 
-- [x] a Qt frontend
+- [x] a more modern GUI frontend (Qt, but that may change)
 - [x] build with CMake
 - [ ] remove unecesary stuff (video and others)
-- [ ] add scripting support (lua?)
+- [ ] add scripting support (lua? js?)
 
 # Compiling
 
