@@ -1,5 +1,5 @@
-
-#include <pthread.h>
+#ifndef QEMACS_QT_H
+#define QEMACS_QT_H
 
 #include <QMainWindow>
 #include <QAbstractScrollArea>
@@ -7,8 +7,7 @@
 #include <QThread>
 #include <QPicture>
 
-#ifndef QEMACS_QT_H
-#define QEMACS_QT_H
+#include <pthread.h>
 
 class QEQtContext;
 

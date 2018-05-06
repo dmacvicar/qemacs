@@ -18,18 +18,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
  */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "qe.h"
-#ifdef __cplusplus
-}
-#endif
-
-#include <iostream>
-#include <functional>
-
 #include <QObject>
 #include <QEventLoop>
 #include <QTimer>
@@ -44,6 +32,16 @@ extern "C" {
 #include <QPainter>
 #include <QKeyEvent>
 
+#include <iostream>
+#include <functional>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "qe.h"
+#ifdef __cplusplus
+}
+#endif
 #include "qt.h"
 
 // Event loop implementation
