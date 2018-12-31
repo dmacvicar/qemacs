@@ -220,7 +220,12 @@ void QEQtView::keyPressEvent (QKeyEvent *event)
         ev.key = KEY_ESC;
         break;
     case Qt::Key_Space:
-        ev.key = KEY_SPC;
+        if (meta)
+            ev.key = KEY_META(KEY_SPC);
+        else if (ctrl)
+            ev.key = KEY_CTRL(KEY_SPC);
+        else
+            ev.key = KEY_SPC;
         break;
     //case Qt::Key_????:
         //ev.key = KEY_DEL;
