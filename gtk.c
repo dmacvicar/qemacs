@@ -494,7 +494,6 @@ static void qe_gtk_text_metrics(QEditScreen *s, QEFont *font,
     pango_layout_set_text(layout, text, -1);
     int height = 0;
     pango_layout_get_pixel_size(layout, &metrics->width, &height);
-    g_debug("  metrics '%s' w %d h %d SCALE: %f", str, metrics->width, height, PANGO_SCALE);
     g_object_unref (layout);
 
 }
@@ -503,8 +502,7 @@ static void qe_gtk_draw_text(QEditScreen *s, QEFont *font,
                          int x1, int y, const unsigned int *str, int len,
                          QEColor color)
 {
-    g_debug("qe_gtk_draw_text %d %d: '%s'", x1, y, str);
-
+    g_debug("qe_gtk_draw_text");
     struct QEGtkState *state = (struct QEGtkState *)s->priv_data;
     PangoFontDescription *fdesc = (PangoFontDescription *)font->priv_data;
 
