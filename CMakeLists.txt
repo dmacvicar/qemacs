@@ -267,7 +267,6 @@ endmacro(generate_module_init_calls)
   set(qemacs_tiny_SRCS ${qemacs_tiny_SRCS} qeend.c)
 #endif(CONFIG_INIT_CALLS)
 
-message(INFO ${qemacs_SRCS})
 add_executable(qe ${qemacs_SRCS})
 add_dependencies(qe allmodules)
 target_link_libraries(qe dl)
