@@ -385,6 +385,7 @@ static void qe_gtk_flush(QEditScreen *s)
 static int qe_gtk_is_user_input_pending(QEditScreen *s)
 {
     g_debug("qe_gtk_is_input_pending");
+    return gtk_events_pending();
 }
 
 static void qe_gtk_fill_rectangle(QEditScreen *s,
