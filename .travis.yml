@@ -1,23 +1,19 @@
 language: cpp
-matrix:
-  include:
-    - os: linux
-      env: GUI=qt
-    - os: linux
-      env: GUI=gtk
-    - os: osx
-      env: GUI=tty
-    - os: osx
-      env: GUI=qt
-  allow_failures:
-    - os: osx
+env:
+  - GUI=qt
+  - GUI=gtk
 os:
   - linux
   - osx
-
 compiler:
   - gcc
   - clang
+matrix:
+  exclude:
+    - os: osx
+      env: GUI=gtk
+  allow_failures:
+    - os: osx
 
 install:
   - cmake --version
@@ -27,13 +23,7 @@ install:
 script:
   - git submodule update --init
   - mkdir _build && cd _build
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      cmake -DCMAKE_PREFIX_PATH=$(brew --prefix qt5) -DCONFIG_QT=ON -DCONFIG_TINY=ON ..;
-    fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" && GUI="qt" ]; then
-      cmake -DCONFIG_QT=ON -DCONFIG_TINY=ON .. ;
-    fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" && GUI="gtk" ]; then
-      cmake -DCONFIG_QT=ON -DCONFIG_TINY=ON .. ;
-    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx"  && "$GUI" == "qt" ]]; then cmake -DCMAKE_PREFIX_PATH=$(brew --prefix qt5) -DCONFIG_QT=ON -DCONFIG_TINY=ON ..; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$GUI" == "qt" ]]; then cmake -DCONFIG_QT=ON -DCONFIG_TINY=ON .. ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$GUI" == "gtk" ]]; then cmake -DCONFIG_GTK=ON -DCONFIG_TINY=ON .. ; fi
   - make VERBOSE=1
