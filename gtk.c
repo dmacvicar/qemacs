@@ -238,6 +238,12 @@ gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     struct QEGtkState *state = (struct QEGtkState *) user_data;
     cairo_set_source_surface (cr, state->surface, 0, 0);
     cairo_paint (cr);
+
+    // FIXME figure how to invert colors... red cursor for now
+    //cairo_set_source_surface(cr, state->surface);
+    cairo_set_source_rgba(cr, 255, 0, 0, 1);
+    cairo_rectangle (cr, state->cursor.x, state->cursor.y, state->cursor.width, state->cursor.height);
+    cairo_fill(cr);
     return FALSE;
 }
 
@@ -346,6 +352,11 @@ static int qe_gtk_init(QEditScreen *s, int w, int h)
     s->clip_y1 = 0;
     s->clip_x2 = s->width;
     s->clip_y2 = s->height;
+
+    state->cursor.x = 0;
+    state->cursor.y = 0;
+    state->cursor.width = 0;
+    state->cursor.height = 0;
 
     g_debug("activate initial size %d x %d", s->width, s->height);
     gtk_widget_set_size_request (state->drawing_area, xsize, ysize);
@@ -538,8 +549,8 @@ static void qe_gtk_cursor_at(QEditScreen *s, int x1, int y1,
                          int w, int h)
 {
     struct QEGtkState *state = (struct QEGtkState *)s->priv_data;
-    state->cursor.x - x1;
-    state->cursor.y - y1;
+    state->cursor.x = x1;
+    state->cursor.y = y1;
     state->cursor.width = w;
     state->cursor.height = h;
 }
