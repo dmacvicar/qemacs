@@ -26,4 +26,4 @@ jobs:
       run: mkdir _build && cd _build && cmake -DCONFIG_GTK=ON -DCONFIG_TINY=ON ..
       if: matrix.gui == 'gtk'
     - name: Run make
-      run: make VERBOSE=1 
+      run: cd _build && make VERBOSE=1 
