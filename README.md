@@ -1,7 +1,7 @@
 
 # An unamed QEmacs fork
 
-![maintained](https://img.shields.io/maintenance/yes/2018.svg) [![Build Status](https://travis-ci.com/dmacvicar/qemacs.svg?branch=master)](https://travis-ci.com/dmacvicar/qemacs)
+![maintained](https://img.shields.io/maintenance/yes/2018.svg) ![Build Status](https://github.com/dmacvicar/qemacs/workflows/Main%20workflow/badge.svg)
 
 ## About QEmacs
 
