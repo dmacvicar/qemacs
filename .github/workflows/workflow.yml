@@ -15,15 +15,15 @@ jobs:
         fetch-depth: 1
     - name: Setup Qt on Linux
       run: sudo apt-get update; sudo apt-get install qtbase5-dev qt5-qmake
-      if: matrix.os == 'ubuntu-latest' && matrix.gui = 'qt'
+      if: matrix.os == 'ubuntu-latest' && matrix.gui == 'qt'
     - name: Setup Gtk on Linux
       run: sudo apt-get update; sudo apt-get install libgtk-3-dev
-      if: matrix.os == 'ubuntu-latest' && matrix.gui = 'gtk'
+      if: matrix.os == 'ubuntu-latest' && matrix.gui == 'gtk'
     - name: Run cmake Qt
       run: mkdir _build && cd _build && cmake -DCONFIG_QT=ON -DCONFIG_TINY=ON ..
-      if: matrix.gui = 'qt'
+      if: matrix.gui == 'qt'
     - name: Run cmake GTK
       run: mkdir _build && cd _build && cmake -DCONFIG_GTK=ON -DCONFIG_TINY=ON ..
-      if: matrix.gui = 'gtk'
+      if: matrix.gui == 'gtk'
     - name: Run make
       run: make VERBOSE=1 
