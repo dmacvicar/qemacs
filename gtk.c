@@ -125,7 +125,7 @@ on_key_press_event (GtkWidget *widget, GdkEventKey *event, gpointer data)
     //    ev.key = KEY_DEL;
     //    break;
     case GDK_KEY_BackSpace:
-        ev.key = meta ? KEY_META(KEY_BS) : KEY_BS;
+        ev.key = meta ? KEY_META(KEY_DEL) : KEY_DEL;
         break;
     case GDK_KEY_Up:
         ev.key = ctrl ? KEY_CTRL_UP : KEY_UP;
