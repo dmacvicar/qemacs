@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.0)
 project(qemacs)
 set(QE_VERSION 5.0)
 include(GNUInstallDirs)
@@ -71,10 +71,47 @@ if(CONFIG_X11)
   find_package(X11 REQUIRED)
 endif()
 
+#add_subdirectory(ext)
+
+include(FetchContent)
+
+FetchContent_Declare(treesitter
+  GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter
+  GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(treesitter)
+
+include_directories(
+    ${treesitter_SOURCE_DIR}/include
+    ${treesitter_SOURCE_DIR}/src
+)
+
+FetchContent_Declare(treesitter_json
+  GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter-json.git
+  GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(treesitter_json)
+
+FetchContent_Declare(treesitter_go
+  GIT_REPOSITORY https://github.com/tree-sitter/tree-sitter-go.git
+  GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(treesitter_go)
+
+include_directories(
+    ${treesitter_SOURCE_DIR}/include
+    ${treesitter_SOURCE_DIR}/src
+)
+
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
 add_definitions(-DHAVE_QE_CONFIG_H)
 add_definitions(-DCONFIG_INIT_CALLS)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+  message("Debug build.")
+  add_definitions(-DDEBUG)
+endif()
 
 set(qemacs_common_SRCS
   qe.c
@@ -87,6 +124,10 @@ set(qemacs_common_SRCS
   hex.c
   list.c
   cutils.c
+  ${treesitter_SOURCE_DIR}/lib/src/lib.c
+  treesitter.c
+  ${treesitter_json_SOURCE_DIR}/src/parser.c
+  ${treesitter_go_SOURCE_DIR}/src/parser.c
 )
 
 if(CONFIG_WIN32)

@@ -1947,6 +1947,11 @@ void do_dired(EditState *s);
 #define CLANG_YACC   0x40
 #define CLANG_REGEX  0x80
 
+/* treesitter.c */
+#define TREESITTER_C 0x01
+#define TREESITTER_JSON 0x02
+#define TREESITTER_GO 0x04
+
 void c_colorize_line(unsigned int *buf, int len, int mode_flags,
                      int *colorize_state_ptr, int state_only);
 
