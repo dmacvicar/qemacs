@@ -24,6 +24,7 @@
 
 ModeDef treesitter_mode;
 
+// FIXME this should go somewhere else?
 TSLanguage *tree_sitter_json();
 TSLanguage *tree_sitter_go();
 
@@ -68,26 +69,49 @@ typedef struct TreeSitterModeState {
     TSParser *parser;
 } TreeSitterModeState;
 
+// updates the treesitter AST as buffer edits are performed
 static void treesitter_edit_buffer_callback(EditBuffer *b, void *opaque,
                                             int arg, enum LogOperation op,
                                             int offset, int size) {
 
-    TreeSitterModeState *tsstate = (TreeSitterModeState *) opaque;
-    //tsstate->s->offset_top
-    
-    //void ts_tree_edit(TSTree *, const TSInputEdit *);
+    dprintf("treesitter_edit_buffer_callback: OP:%d OFFSET:%d SIZE:%d\n", op, offset, size);
 
-    //TSParser *parser = (TSParser *)e->b->priv_data;
-    //TSNode root = ts_tree_root_node(gTree);
-    //TSNode node = ts_node_descendant_for_byte_range(root, gEditState->offset, len);
-    //TSNode ts_node_descendant_for_byte_range(TSNode, uint32_t, uint32_t);
-    //TSNode ts_node_descendant_for_point_range(TSNode, TSPoint, TSPoint);
-    FILE *f = fopen("color.log", "a+");
-    int offset_ptr;
-    eb_nextc(b, offset, &offset_ptr);
-    dprintf("OP:%d OFFSET:%d SIZE:%d OFFSET_TOP:%d OFFSET_PTR:%d\n", op, offset, size, tsstate->s->offset_top, offset_ptr);
-    
-    fclose(f);
+    TreeSitterModeState *tsstate = (TreeSitterModeState *) opaque;
+    TSTree *tree = (TSTree *) tsstate->tree;
+
+    int line_num, col;
+
+    TSInputEdit edit;
+    edit.start_byte = offset;
+
+    eb_get_pos(b, &line_num, &col, offset);
+    edit.start_point = (TSPoint){.row = line_num, .column = col};
+
+    switch (op) {
+    case LOGOP_INSERT:
+        edit.old_end_byte = offset;
+        edit.new_end_byte = offset + size;
+
+        eb_get_pos(b, &line_num, &col, offset);
+        edit.old_end_point = (TSPoint){.row = line_num, .column = col};
+
+        eb_get_pos(b, &line_num, &col, offset + size);
+        edit.new_end_point = (TSPoint){.row = line_num, .column = col};
+        break;
+    case LOGOP_DELETE:
+        edit.old_end_byte = offset;
+        edit.new_end_byte = offset - size;
+
+        eb_get_pos(b, &line_num, &col, offset);
+        edit.old_end_point = (TSPoint){.row = line_num, .column = col};
+
+        eb_get_pos(b, &line_num, &col, offset - size);
+        edit.new_end_point = (TSPoint){.row = line_num, .column = col};
+        break;
+    default:
+        put_error(tsstate->s, "LOGOP not implemented: %d", op);
+    }
+    ts_tree_edit(tree, &edit);
 }
 
 /* colorize nodes for a single line
@@ -119,8 +143,6 @@ void treesitter_mode_colorize_node_line(TSNode root, unsigned int *buf, int line
         // doc relative offset
         int start_byte = ts_node_start_byte(node);
         int end_byte = ts_node_end_byte(node);
-
-        int node_len = end_byte - start_byte;
 
         // restrict to inside of line
         start_byte = max(line_offset, start_byte) - line_offset;
@@ -162,45 +184,32 @@ void treesitter_mode_colorize_node_line(TSNode root, unsigned int *buf, int line
         } 
     }
  exit:
-    ts_tree_cursor_delete(&cursor);
+    //ts_tree_cursor_delete(&cursor);
 }
 
 int treesitter_get_colorized_line(EditState *s, unsigned int *buf, int buf_size,
                                   int *offsetp, int line_num) {
-    // eb_get_line will set offset to next line
+    // eb_get_line will set offset to next line, so save it
     int line_offset = *offsetp;
+
     TreeSitterModeState *tsstate = (TreeSitterModeState *) s->b->priv_data;
     int line_len = eb_get_line(s->b, buf, buf_size, offsetp);
 
     TSTree *tree = (TSTree *) tsstate->tree;
     TSNode root = ts_tree_root_node(tree);
 
-    //FILE *f = fopen("color.log", "a+");
-    //eb_nextc(b, offset, &offset_ptr);
     dprintf("treesitter_get_colorized_line: BUF:%d SIZE:%d OFFSETP:%d LINE:%d LINE_LEN:%d\n", buf, buf_size, line_offset, line_num, line_len);
-
-    //fprintf(f, "treesitter_get_colorized_line: BUF:%d SIZE:%d OFFSETP:%d LINE:%d LINE_LEN:%d\n", buf, buf_size, line_offset, line_num, line_len);
 
     int bom = (line_len > 0 && buf[0] == 0xFEFF);
     treesitter_mode_colorize_node_line(root, buf + bom, line_len - bom, line_num, line_offset);
 
-    //fclose(f);
-
     return line_len;
-}
-
-static void treesitter_mode_colorize(TreeSitterModeState *tsstate,
-                                     int offset, int size) {
-
-    //set_color(
 }
 
 static int treesitter_mode_init(EditState *s, ModeSavedData *saved_data)
 {
     TSParser *parser = ts_parser_new();
-    // Set the parser's language (JSON in this case).
 
-    /* Select C like flavor */
     if (match_extension(s->b->filename, "c|h|C|H")) {
         s->mode_name = "treesitter/c";
         s->mode_flags = TREESITTER_C;
@@ -250,7 +259,9 @@ static int treesitter_init()
     treesitter_mode.mode_probe = treesitter_mode_probe;
     treesitter_mode.mode_init = treesitter_mode_init;
     treesitter_mode.mode_close = treesitter_mode_close;
-    //treesitter_mode.colorize_func = treesitter_colorize_line;
+
+    // as we override treesitter_get_colorized_line, no need to set
+    // colorize_func
 
     qe_register_mode(&treesitter_mode);
 
