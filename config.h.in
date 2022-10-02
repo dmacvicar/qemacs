@@ -1,13 +1,13 @@
-#cmakedefine QE_VERSION "@QE_VERSION@"
-#cmakedefine01 CONFIG_NETWORK
-#cmakedefine01 CONFIG_QT
-#cmakedefine01 CONFIG_X11
-#cmakedefine01 CONFIG_XV
-#cmakedefine01 CONFIG_HTML
-#cmakedefine01 CONFIG_DLL
-#cmakedefine01 CONFIG_PNG_OUTPUT
-#cmakedefine01 CONFIG_MMAP
-#cmakedefine01 CONFIG_ALL_MODES
-#cmakedefine01 CONFIG_UNICODE_JOIN
-#cmakedefine CONFIG_QE_PREFIX "@CONFIG_QE_PREFIX@"
-#cmakedefine CONFIG_QE_DATADIR "@CONFIG_QE_DATADIR@"
+#mesondefine QE_VERSION
+#mesondefine CONFIG_NETWORK
+#mesondefine CONFIG_QT
+#mesondefine CONFIG_X11
+#mesondefine CONFIG_XV
+#mesondefine CONFIG_HTML
+#mesondefine CONFIG_DLL
+#mesondefine CONFIG_PNG_OUTPUT
+#mesondefine CONFIG_MMAP
+#mesondefine CONFIG_ALL_MODES
+#mesondefine CONFIG_UNICODE_JOIN
+#mesondefine CONFIG_QE_PREFIX
+#mesondefine CONFIG_QE_DATADIR
