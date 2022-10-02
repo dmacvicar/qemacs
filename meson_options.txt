@@ -1,0 +1,3 @@
+option('tiny', type : 'feature', value : 'disabled')
+option('treesitter', type : 'feature', value : 'enabled')
+option('gtk', type : 'feature', value : 'enabled')
